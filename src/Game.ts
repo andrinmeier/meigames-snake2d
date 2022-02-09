@@ -40,6 +40,7 @@ export class Game {
     }
 
     onGameDone(callback: () => void) {
+        this.loop.stop();
         this.onGameDoneCallback = callback;
     }
 }

@@ -17,7 +17,7 @@ export class SnakeGame implements ISceneObject {
 
     update(): void {
         this.snake.move();
-        if (this.snake.hasCollided) {
+        if (this.snake.hasCollided()) {
             this.onGameDoneCallback();
         }
         if (this.snake.hasEatenFood()) {
