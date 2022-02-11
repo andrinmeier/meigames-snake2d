@@ -9,7 +9,6 @@ import { ScenePosition } from "./ScenePosition";
 
 export class RuledSurface {
     lines: Line[] = [];
-    private skeleton: Point2D[] = [];
     private maxPoints: number = 10;
     vertices: number[] = [];
     private readonly v = 5;
@@ -54,7 +53,6 @@ export class RuledSurface {
         const line = new Line(point, angle, this.v);
         if (this.lines.length === 0) {
             this.lines.push(line);
-            this.skeleton.push(line.point);
         } else {
             const previous = this.lines[this.lines.length - 1];
             this.vertices.push(previous.endPoint().x);
@@ -67,12 +65,8 @@ export class RuledSurface {
             this.vertices.push(line.startPoint().y);
             this.position.setValues(this.vertices);
             this.lines.push(line);
-            //const interpolated = interpolate(previous.point, line.point, 0.01);
-            //interpolated.forEach(i => this.skeleton.push(i));
-            //interpolated.push(line.point);
             this.lines = this.lines.slice(Math.max(this.lines.length - this.maxPoints, 0));
-            this.vertices = this.vertices.slice(Math.max(this.vertices.length - this.maxPoints * 4, 0));
-            //this.skeleton = this.skeleton.slice(Math.max(this.skeleton.length - (1 + ((this.maxPoints - 1) * 100)), 0));
+            this.vertices = this.vertices.slice(Math.max(this.vertices.length - this.maxPoints * 8, 0));
         }
     }
 
@@ -118,7 +112,7 @@ export class RuledSurface {
         return innerBodyOnly;
     }
 
-    onSegment(p, q, r) {
+    onSegment(p: Point2D, q: Point2D, r: Point2D) {
         if (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
             q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y)) {
             return true;
@@ -126,19 +120,30 @@ export class RuledSurface {
         return false;
     }
 
-    orientation(p, q, r) {
+    orientation(p: Point2D, q: Point2D, r: Point2D) {
         let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-        if (val == 0) return 0;
+        if (val == 0) {
+            return 0;
+        }
         return (val > 0) ? 1 : 2;
     }
 
-    doIntersect(p1, q1, p2, q2) {
+    lineSegmentsIntersect(p1: Point2D, q1: Point2D, p2: Point2D, q2: Point2D) {
+        // Ignore collinearity.
+        if (p1.x - q1.x !== 0 && p2.x - q2.x !== 0) {
+            const slope1 = (p1.y - q1.y) / (p1.x - q1.x);
+            const slope2 = (p2.y - q2.y) / (p2.x - q2.x);
+            if (Math.abs((slope1 - slope2)) < 0.001) {
+                return false;
+            }
+        }
         let o1 = this.orientation(p1, q1, p2);
         let o2 = this.orientation(p1, q1, q2);
         let o3 = this.orientation(p2, q2, p1);
         let o4 = this.orientation(p2, q2, q1);
-        if (o1 != o2 && o3 != o4)
+        if (o1 != o2 && o3 != o4) {
             return true;
+        }
         if (o1 == 0 && this.onSegment(p1, p2, q1)) return true;
         if (o2 == 0 && this.onSegment(p1, q2, q1)) return true;
         if (o3 == 0 && this.onSegment(p2, p1, q2)) return true;
@@ -147,38 +152,19 @@ export class RuledSurface {
     }
 
     hitItself() {
-        const segmentLength = 5;
-        const buffer = 2 * segmentLength;
+        const segmentLength = 10;
+        const buffer = 5 * segmentLength;
         if (this.lines.length < (2 * segmentLength + buffer)) {
             return false;
         }
         const head = [this.lines[this.lines.length - segmentLength].point, this.lines[this.lines.length - 1].point];
         for (let i = 0; i < (this.lines.length - segmentLength - buffer); i += segmentLength) {
             const current = [this.lines[i].point, this.lines[i + segmentLength].point];
-            if (this.doIntersect(current[0], current[1], head[0], head[1])) {
-                console.log({ i });
-                console.log({ head });
-                console.log({ current });
+            if (this.lineSegmentsIntersect(current[0], current[1], head[0], head[1])) {
                 return true;
             }
         }
         return false;
-    }
-
-    toPointName(point: Point2D) {
-        return `${point.x.toFixed(2)}.${point.y.toFixed(2)}`;
-    }
-
-    dotProduct(a: Point2D, b: Point2D): number {
-        return a.x * b.x + a.y * b.y;
-    }
-
-    normalize(point: Point2D): Point2D {
-        const unit = Math.sqrt(Math.pow(point.x, 2) + Math.pow(point.y, 2));
-        return new Point2D(
-            point.x / unit,
-            point.y / unit
-        );
     }
 
     anyInside(points: Point2D[]): boolean {

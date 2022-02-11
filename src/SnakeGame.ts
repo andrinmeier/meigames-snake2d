@@ -33,8 +33,8 @@ export class SnakeGame implements ISceneObject {
         this.outsideGame = new OutsideGameArea(512, 512);
         this.player = new Player();
         this.snake = new Snake(context, shaderProgram);
-        this.snake.changeBodyLength(200);
-        this.snake.grow(200);
+        this.snake.changeBodyLength(100);
+        this.snake.grow(100);
         this.food = new Food(this.foodRadius, context, shaderProgram);
         this.respawnFood();
     }
