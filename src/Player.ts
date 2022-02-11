@@ -5,17 +5,11 @@ export class Player {
 
     constructor() {
         this.pressed = {};
-        this.handled = {
-            ArrowLeft: false,
-            ArrowUp: false,
-            ArrowRight: false,
-            ArrowDown: false
-        };
         this.key = {
-            LEFT: "ArrowLeft",
-            UP: "ArrowUp",
-            RIGHT: "ArrowRight",
-            DOWN: "ArrowDown",
+            LEFT: "KeyA",
+            UP: "KeyW",
+            RIGHT: "KeyD",
+            DOWN: "KeyS",
         };
         this.hookupEventListeners();
     }
@@ -47,18 +41,9 @@ export class Player {
 
     onKeyup = (event) => {
         this.pressed[event.code] = false;
-        this.handled[event.code] = false;
     };
 
     isPressed = (keyCode) => {
-        let isPressed =
-            this.pressed[keyCode] !== undefined &&
-            this.pressed[keyCode] &&
-            this.handled[keyCode] !== undefined &&
-            !this.handled[keyCode];
-        if (this.pressed[keyCode] !== undefined && this.pressed[keyCode]) {
-            this.handled[keyCode] = true;
-        }
-        return isPressed;
+        return this.pressed[keyCode];
     };
 }

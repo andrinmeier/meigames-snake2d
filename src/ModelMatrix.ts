@@ -1,3 +1,5 @@
+import { mat3, mat4 } from "gl-matrix";
+
 export class ModelMatrix {
     private readonly matrixId;
 
@@ -5,7 +7,7 @@ export class ModelMatrix {
         this.matrixId = context.getUniformLocation(shaderProgram, "modelMatrix");
     }
 
-    setValues(matrix3: any) {
-        this.context.uniformMatrix3fv(this.matrixId, false, matrix3);
+    setValues(matrix: mat3) {
+        this.context.uniformMatrix3fv(this.matrixId, false, matrix);
     }
 }

@@ -14,9 +14,13 @@ export class ScenePosition {
             new Float32Array(values),
             this.context.STATIC_DRAW
         );
+    }
+
+    activate() {
+        this.context.bindBuffer(this.context.ARRAY_BUFFER, this.buffer);
         this.context.vertexAttribPointer(
             this.positionId,
-            3,
+            2,
             this.context.FLOAT,
             false,
             0,

@@ -1,109 +1,81 @@
-import { Board } from "./Board";
-import { Cell } from "./Cell";
-import { Player } from "./Player";
-import { PlayerDirection } from "./PlayerDirection";
+import { glMatrix } from "gl-matrix";
+import { Angle } from "./Angle";
+import { BoundingBox } from "./BoundingBox";
+import { ISceneObject } from "./ISceneObject";
+import { ModelMatrix } from "./ModelMatrix";
+import { Point2D } from "./Point2D";
+import { RuledSurface } from "./RuledSurface";
+import { SceneColor } from "./SceneColor";
+import { ScenePosition } from "./ScenePosition";
+import { Square } from "./Square";
+import { Velocity } from "./Velocity";
 
-export class Snake {
-    private readonly body: Cell[];
-    private readonly player: Player = new Player();
-    private direction: PlayerDirection;
-    private collided: boolean = false;
-    private eatenFood: boolean = false;
+export class Snake implements ISceneObject {
+    private currentVelocity: Velocity;
+    private readonly surface: RuledSurface;
+    stopped: boolean;
 
-    constructor(private readonly board: Board, initialLength: number) {
-        this.direction = PlayerDirection.Up;
-        this.body.push(this.board.findRandomFreeCell());
-        this.grow(initialLength - 1);
+    constructor(readonly context: any, shaderProgram: any) {
+        this.currentVelocity = new Velocity(Angle.fromDegrees(0), 1);
+        this.surface = new RuledSurface(context, shaderProgram);
+    }
+    changeDirection(angleDifference: number) {
+        const newAngle = Angle.fromDegrees((this.currentVelocity.angle.degrees + angleDifference) % 360);
+        this.currentVelocity = new Velocity(newAngle, 1);
     }
 
-    private grow(length: number) {
-        const current = length;
-        while (current > 0) {
-            const nextCell = this.findNextCellByDirection();
-            if (nextCell === null) {
-                return;
-            }
-            this.body.push(nextCell);
+    changeBodyLength(newLength: number): void {
+        this.surface.setMaxPoints(newLength);
+    }
+
+    increaseBodyLength(addedLength: number): void {
+        this.surface.increaseMaxPoints(addedLength);
+    }
+
+    grow(count: number): void {
+        let pointsCount = count;
+        let previous = this.surface.getLastPoint();
+        if (!previous) {
+            previous = new Point2D(10, 10);
+        }
+        while (pointsCount > 0) {
+            const newPoint = previous.add(this.currentVelocity);
+            this.surface.addLine(newPoint, this.currentVelocity.angle);
+            previous = newPoint;
+            pointsCount--;
         }
     }
 
-    hasEatenFood(): boolean {
-        return this.eatenFood;
-    }
-
-    hasCollided(): boolean {
-        return this.collided;
-    }
-
-    private getHead(): Cell {
-        if (this.body.length === 0) {
-            return null;
-        }
-        return this.body[this.body.length - 1];
-    }
-
-    private prune(): void {
-        if (this.body.length === 0) {
-            return;
-        }
-        this.body.splice(0, 1);
-    }
-
-    move() {
-        const nextCell = this.getNextCell();
-        if (nextCell === null) {
-            return;
-        }
-        this.collided = this.hasCollided();
-        if (!this.hasCollided()) {
-            this.grow(1);
-            this.prune();
-        }
-        this.eatenFood = this.foundFood(nextCell);
-        if (this.hasEatenFood()) {
-            this.grow(1);
+    update(): void {
+        if (!this.stopped) {
+            this.move(1.0);
         }
     }
 
-    private getNextCell(): Cell | null {
-        if (this.player.movesUp()) {
-            this.direction = PlayerDirection.Up;
-        } else if (this.player.movesDown()) {
-            this.direction = PlayerDirection.Down;
-        } else if (this.player.movesLeft()) {
-            this.direction = PlayerDirection.Left;
-        } else if (this.player.movesRight()) {
-            this.direction = PlayerDirection.Right;
+    draw(lagFix: number): void {
+        if (!this.stopped) {
+            this.move(lagFix);
         }
-        return this.findNextCellByDirection();
+        this.surface.draw(lagFix);
     }
 
-    private findNextCellByDirection(): Cell | null {
-        if (this.direction === PlayerDirection.Up) {
-            return this.board.getCellAbove(this.getHead().position);
-        } else if (this.direction === PlayerDirection.Down) {
-            return this.board.getCellBelow(this.getHead().position);
-        } else if (this.direction === PlayerDirection.Left) {
-            return this.board.getCellLeft(this.getHead().position);
-        } else if (this.direction === PlayerDirection.Right) {
-            return this.board.getCellRight(this.getHead().position);
-        }
-        return null;
+    overlaps(other: BoundingBox): boolean {
+        return this.surface.overlaps(other);
     }
 
-    private foundFood(cell: Cell) {
-        return !cell.isFree() && !this.isPartOfBody(cell);
+    getHeadPoints(): Point2D[] {
+        return this.surface.getHeadPoints();
     }
 
-    private checkCollisions(cell: Cell) {
-        return this.isPartOfBody(cell) || this.collidedWithWall(cell);
+    anyInside(points: Point2D[]): boolean {
+        return this.surface.anyInside(points);
     }
 
-    private isPartOfBody(cell: Cell) {
-        return this.body.some(bodyCell => bodyCell === cell);
+    hitItself(): boolean {
+        return this.surface.hitItself();
     }
 
-    private collidedWithWall(cell: Cell) {
-        return cell === null;
+    private move(speedFactor: number): void {
+        this.grow(speedFactor);
     }
 }

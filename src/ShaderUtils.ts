@@ -1,39 +1,30 @@
-const loadResource = async (name: string) => {
-    const response = await fetch(name);
-    if (response.status === 200) {
-        return await response.text();
-    }
-    throw new Error("Failed to load shader.");
-}
+import vertexShaderText from './shaders/VertexShader';
+import fragmentShaderText from './shaders/FragmentShader';
 
-export const loadAndCompileShaders = async (
-    gl: any,
-    vertexShaderFileName: string,
-    fragmentShaderFileName: string
-) => {
-    var vertexShaderSource = await loadResource(vertexShaderFileName);
-    var fragmentShaderSource = await loadResource(fragmentShaderFileName);
+export const loadAndCompileShaders = (context: any) => {
+    var vertexShaderSource = vertexShaderText;
+    var fragmentShaderSource = fragmentShaderText;
     if (vertexShaderSource === null || fragmentShaderSource === null) {
         console.log("Could not load shader files");
         return false;
     }
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.compileShader(vertexShader);
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        alert("Vertex Shader Error: " + gl.getShaderInfoLog(vertexShader));
+    var vertexShader = context.createShader(context.VERTEX_SHADER);
+    context.shaderSource(vertexShader, vertexShaderSource);
+    context.compileShader(vertexShader);
+    if (!context.getShaderParameter(vertexShader, context.COMPILE_STATUS)) {
+        alert("Vertex Shader Error: " + context.getShaderInfoLog(vertexShader));
         return false;
     }
 
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
-    gl.compileShader(fragmentShader);
+    var fragmentShader = context.createShader(context.FRAGMENT_SHADER);
+    context.shaderSource(fragmentShader, fragmentShaderSource);
+    context.compileShader(fragmentShader);
 
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        alert("Fragment Shader Error: " + gl.getShaderInfoLog(fragmentShader));
+    if (!context.getShaderParameter(fragmentShader, context.COMPILE_STATUS)) {
+        alert("Fragment Shader Error: " + context.getShaderInfoLog(fragmentShader));
         return false;
     }
-    return setupProgram(gl, vertexShader, fragmentShader);
+    return setupProgram(context, vertexShader, fragmentShader);
 }
 
 const setupProgram = (gl: any, vertexShader: any, fragmentShader: any) => {

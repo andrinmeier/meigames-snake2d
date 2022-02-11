@@ -1,46 +1,49 @@
-import { Board } from "./Board";
 import { GameLoop } from "./GameLoop";
 import { Scene } from "./Scene";
 import { loadAndCompileShaders } from "./ShaderUtils";
 import { SnakeGame } from "./SnakeGame";
 
 export class Game {
-    private onScoreChangedCallback: (newScore: number) => void;
-    private onGameDoneCallback: () => void;
+    private onScoreChanged: (newScore: number) => void;
+    private onGameDone: () => void;
     private loop: GameLoop;
     private snakeGame: SnakeGame;
 
     constructor(readonly context: any) {
     }
 
-    async init() {
-        const shaderProgram = await loadAndCompileShaders(
-            this.context,
-            "./shaders/vertex_shader.glsl",
-            "./shaders/fragment_shader.glsl"
-        );
+    init() {
+        const shaderProgram = loadAndCompileShaders(this.context);
         const width = this.context.drawingBufferWidth;
-        const board = new Board(this.context, shaderProgram, Math.sqrt(width), width);
-        this.snakeGame = new SnakeGame(board);
+        this.snakeGame = new SnakeGame(this.context, shaderProgram);
         const scene = new Scene();
         scene.add(this.snakeGame);
-        scene.add(board);
         this.loop = new GameLoop(this.context, scene);
-        this.snakeGame.onScoreChanged((newScore: number) => this.onScoreChangedCallback(newScore));
-        this.snakeGame.onGameDone(() => this.onGameDoneCallback());
-        await this.loop.init();
+        this.snakeGame.registerOnScoreChanged((newScore: number) => {
+            if (!this.onScoreChanged) {
+                return;
+            }
+            this.onScoreChanged(newScore);
+        });
+        this.snakeGame.registerOnGameDone(() => {            
+            this.loop.stop();
+            if (!this.onGameDone) {
+                return;
+            }
+            this.onGameDone()
+        });
+        this.loop.init();
     }
 
     start() {
         this.loop.start();
     }
 
-    onScoreChanged(callback: (newScore: number) => void) {
-        this.onScoreChangedCallback = callback;
+    registerOnScoreChanged(callback: (newScore: number) => void) {
+        this.onScoreChanged = callback;
     }
 
-    onGameDone(callback: () => void) {
-        this.loop.stop();
-        this.onGameDoneCallback = callback;
+    registerOnGameDone(callback: () => void) {
+        this.onGameDone = callback;
     }
 }
