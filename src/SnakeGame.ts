@@ -1,18 +1,21 @@
 import { BoundingBox } from "./BoundingBox";
 import { Food } from "./Food";
+import { GameArea } from "./GameArea";
 import { ISceneObject } from "./ISceneObject";
 import interpolate from "./LinearInterpolation";
 import { ModelMatrix } from "./ModelMatrix";
 import { OrthographicProjection } from "./OrthographicProjection";
 import { OutsideGameArea } from "./OutsideGameArea";
-import { Player } from "./Player";
+import { DesktopPlayer } from "./DesktopPlayer";
 import { Point2D } from "./Point2D";
 import randomValue from "./RandomValue";
 import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
+import { SmoothCanvas } from "./SmoothCanvas";
 import { Snake } from "./Snake";
 import { Square } from "./Square";
 import { ViewMatrix } from "./ViewMatrix";
+import { MobilePlayer } from "./MobilePlayer";
 
 export class SnakeGame implements ISceneObject {
     private onScoreChanged: (newScore: number) => void;
@@ -20,94 +23,45 @@ export class SnakeGame implements ISceneObject {
     private score: number = 0;
     private snake: Snake;
     private food: Food;
-    private player: Player;
+    private readonly desktopPlayer: DesktopPlayer;
+    private readonly mobilePlayer: MobilePlayer;
+    private readonly foodRadius: number = 7.5;
     private readonly viewMatrix: ViewMatrix;
     private readonly projection: OrthographicProjection;
     private readonly outsideGame: OutsideGameArea;
-    private readonly fieldSize: number = 512;
-    private foodRadius: number = 7.5;
+    private readonly smoothCanvas: SmoothCanvas;
+    private readonly gameArea: GameArea;
 
-    constructor(private readonly context: any, private readonly shaderProgram: any) {
+    constructor(private readonly context: any, private readonly shaderProgram: any, private readonly canvas: any) {
         this.viewMatrix = new ViewMatrix(context, shaderProgram);
         this.projection = new OrthographicProjection(context, shaderProgram);
-        this.outsideGame = new OutsideGameArea(512, 512);
-        this.player = new Player();
+        this.smoothCanvas = new SmoothCanvas(this.canvas);
+        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 2 * this.foodRadius);
+        this.outsideGame = new OutsideGameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        this.desktopPlayer = new DesktopPlayer();
+        this.mobilePlayer = new MobilePlayer();
         this.snake = new Snake(context, shaderProgram);
-        this.snake.changeBodyLength(100);
-        this.snake.grow(100);
+        this.snake.restrictBodyLength(50);
+        this.snake.grow(200);
         this.food = new Food(this.foodRadius, context, shaderProgram);
         this.respawnFood();
     }
 
-    private respawnFoodRandomly(tries: number, safetyMarginFactor: number): boolean {
-        while (tries > 0) {
-            const row = randomValue(safetyMarginFactor * this.foodRadius, this.fieldSize - safetyMarginFactor * this.foodRadius);
-            const col = randomValue(safetyMarginFactor * this.foodRadius, this.fieldSize - safetyMarginFactor * this.foodRadius);
-            const leftBottom = new Point2D(row, col);
-            const leftTop = new Point2D(row, col + this.foodRadius);
-            const rightBottom = new Point2D(row + this.foodRadius, col);
-            const rightTop = new Point2D(row + this.foodRadius, col + this.foodRadius);
-            const line0 = interpolate(leftBottom, leftTop, 0.01);
-            tries--;
-            if (this.snake.anyInside(line0)) {
-                continue;
-            }
-            const line1 = interpolate(leftTop, rightTop, 0.01);
-            if (this.snake.anyInside(line1)) {
-                continue;
-            }
-            const line2 = interpolate(leftBottom, rightBottom, 0.01);
-            if (this.snake.anyInside(line2)) {
-                continue;
-            }
-            const line3 = interpolate(rightBottom, rightTop, 0.01);
-            if (this.snake.anyInside(line3)) {
-                continue;
-            }
-            const center = new Point2D((rightBottom.x + leftBottom.x) / 2, (leftTop.y + leftBottom.y) / 2);
-            this.food.respawn(center);
-            return true;
+    private respawnFoodRandomly(): boolean {
+        const snakeBoxes = this.snake.getHitBoxes();
+        const freeSquares = this.gameArea.getFreeSquares(snakeBoxes);
+        if (freeSquares.length === 0) {
+            return false;
         }
-        return false;
+        const freeBoxIndex = randomValue(0, freeSquares.length - 1);
+        const freeBox = freeSquares[freeBoxIndex];
+        this.food.respawn(freeBox.getCenter());
+        return true;
     }
 
-    respawnFoodBruteForce(safetyMarginFactor: number): boolean {
-        for (let row = safetyMarginFactor * this.foodRadius; row < this.fieldSize - (safetyMarginFactor * this.foodRadius); row++) {
-            for (let col = safetyMarginFactor * this.foodRadius; col < this.fieldSize - (safetyMarginFactor * this.foodRadius); col++) {
-                const leftBottom = new Point2D(row, col);
-                const leftTop = new Point2D(row, col + this.foodRadius);
-                const rightBottom = new Point2D(row + this.foodRadius, col);
-                const rightTop = new Point2D(row + this.foodRadius, col + this.foodRadius);
-                const line0 = interpolate(leftBottom, leftTop, 0.01);
-                if (this.snake.anyInside(line0)) {
-                    continue;
-                }
-                const line1 = interpolate(leftTop, rightTop, 0.01);
-                if (this.snake.anyInside(line1)) {
-                    continue;
-                }
-                const line2 = interpolate(leftBottom, rightBottom, 0.01);
-                if (this.snake.anyInside(line2)) {
-                    continue;
-                }
-                const line3 = interpolate(rightBottom, rightTop, 0.01);
-                if (this.snake.anyInside(line3)) {
-                    continue;
-                }
-                const center = new Point2D((rightBottom.x + leftBottom.x) / 2, (leftTop.y + leftBottom.y) / 2);
-                this.food.respawn(center);
-                return true;
-            }
-        }
-        return false;
-    }
 
     respawnFood() {
-        const safetyMarginFactor = 3;
-        if (this.respawnFoodRandomly(100, safetyMarginFactor)) {
-            return;
-        }
-        if (this.respawnFoodBruteForce(safetyMarginFactor)) {
+        if (this.respawnFoodRandomly()) {
             return;
         }
         // Entire game filled, game over.
@@ -116,10 +70,17 @@ export class SnakeGame implements ISceneObject {
     }
 
     update(): void {
-        if (this.player.movesLeft()) {
+        this.smoothCanvas.recalculate();
+        this.gameArea.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        this.outsideGame.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        if (this.desktopPlayer.movesLeft()) {
             this.snake.changeDirection(7.5);
-        } else if (this.player.movesRight()) {
+        } else if (this.desktopPlayer.movesRight()) {
             this.snake.changeDirection(-7.5);
+        }
+        if (this.mobilePlayer.swipeHappened()) {
+            const deg = this.mobilePlayer.getSwipeAngleAndConsume(this.snake.getHead()).degrees;
+            this.snake.changeDirection(5 * deg);
         }
         this.snake.update();
         const snakeHead = this.snake.getHeadPoints();
@@ -134,13 +95,19 @@ export class SnakeGame implements ISceneObject {
             }
             this.snake.increaseBodyLength(50);
             this.respawnFood();
+            this.snake.speedUp();
         }
         this.food.update();
     }
 
     draw(lagFix: number): void {
-        this.viewMatrix.setValues([this.fieldSize / 2, this.fieldSize / 2, 5], [this.fieldSize / 2, this.fieldSize / 2, 0], [0, 1, 0]);
-        this.projection.setValues(-this.fieldSize / 2, this.fieldSize / 2, -this.fieldSize / 2, this.fieldSize / 2, 4, 6);
+        this.smoothCanvas.recalculate();
+        this.gameArea.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        this.outsideGame.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        const width = this.smoothCanvas.getLogicalWidth();
+        const height = this.smoothCanvas.getLogicalHeight();
+        this.viewMatrix.setValues([width / 2, height / 2, 5], [width / 2, height / 2, 0], [0, 1, 0]);
+        this.projection.setValues(-width / 2, width / 2, -height / 2, height / 2, 4, 6);
         this.snake.draw(lagFix);
         const snakeHead = this.snake.getHeadPoints();
         if (this.snake.hitItself() || this.outsideGame.inside(snakeHead)) {

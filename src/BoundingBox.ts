@@ -7,10 +7,18 @@ export class BoundingBox {
     constructor(private readonly leftBottom: Point2D, private readonly leftTop: Point2D, private readonly rightBottom: Point2D, private readonly rightTop: Point2D) { }
 
     overlaps(other: BoundingBox): boolean {
-        return other.leftBottom.x >= this.leftBottom.x && other.leftBottom.y >= this.leftBottom.y &&
-            other.rightBottom.x <= this.rightBottom.x && other.rightBottom.y >= this.rightBottom.y &&
-            other.leftTop.x >= this.leftTop.x && other.leftTop.y <= this.leftTop.y &&
-            other.rightTop.x <= this.rightTop.x && other.rightTop.y <= this.rightTop.y;
+        return this.overlapsDirect(other, this) || this.overlapsDirect(this, other);
+    }
+
+    getCenter(): Point2D {
+        return new Point2D((this.rightBottom.x + this.leftBottom.x) / 2, (this.leftTop.y + this.leftBottom.y) / 2);
+    }
+
+    private overlapsDirect(inside: BoundingBox, outside: BoundingBox): boolean {
+        return inside.leftBottom.x >= outside.leftBottom.x && inside.leftBottom.y >= outside.leftBottom.y &&
+            inside.rightBottom.x <= outside.rightBottom.x && inside.rightBottom.y >= outside.rightBottom.y &&
+            inside.leftTop.x >= outside.leftTop.x && inside.leftTop.y <= outside.leftTop.y &&
+            inside.rightTop.x <= outside.rightTop.x && inside.rightTop.y <= outside.rightTop.y;
     }
 
     anyInside(points: Point2D[]): boolean {

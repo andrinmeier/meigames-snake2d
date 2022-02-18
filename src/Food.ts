@@ -1,9 +1,7 @@
 import { glMatrix, mat3 } from "gl-matrix";
-import { Angle } from "./Angle";
 import { BoundingBox } from "./BoundingBox";
 import ColorPalette from "./ColorPalette";
 import { ISceneObject } from "./ISceneObject";
-import { ModelMatrix } from "./ModelMatrix";
 import { Point2D } from "./Point2D";
 import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
@@ -15,9 +13,14 @@ export class Food implements ISceneObject {
     private verticesLength: number;
     private center: Point2D;
 
-    constructor(private readonly foodRadius: number, readonly context: any, shaderProgram: any) {
+    constructor(private foodRadius: number, readonly context: any, shaderProgram: any) {
         this.position = new ScenePosition(this.context, shaderProgram);
         this.color = new SceneColor(this.context, shaderProgram);
+    }
+
+    resize(newRadius: number) {
+        this.foodRadius = newRadius;
+        this.init();
     }
 
     respawn(center: Point2D) {
@@ -33,7 +36,7 @@ export class Food implements ISceneObject {
         let rightTop: Point2D;
         vertices.push(this.center.x)
         vertices.push(this.center.y);
-        for (let degrees = 0; degrees < 360; degrees++) {
+        for (let degrees = 0; degrees <= 360; degrees++) {
             const x = this.center.x + this.foodRadius * Math.cos(glMatrix.toRadian(degrees));
             const y = this.center.y + this.foodRadius * Math.sin(glMatrix.toRadian(degrees));
             vertices.push(x);
@@ -62,7 +65,7 @@ export class Food implements ISceneObject {
 
     draw(lagFix: number): void {
         this.position.activate();
-        this.color.setColor(ColorPalette.RED);
+        this.color.setColor(ColorPalette.NEON);
         this.color.activate();
         this.context.drawArrays(this.context.TRIANGLE_FAN, 0, this.verticesLength / 2);
     }

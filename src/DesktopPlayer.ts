@@ -1,6 +1,5 @@
-export class Player {
+export class DesktopPlayer {
     private readonly pressed: any;
-    private readonly handled: any;
     private readonly key: any;
 
     constructor() {

@@ -2,12 +2,11 @@ import { Angle } from "./Angle";
 import { BoundingBox } from "./BoundingBox";
 import ColorPalette from "./ColorPalette";
 import { Line } from "./Line";
-import interpolate from "./LinearInterpolation";
 import { Point2D } from "./Point2D";
 import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
 
-export class RuledSurface {
+export class SnakeBody {
     lines: Line[] = [];
     private maxPoints: number = 10;
     vertices: number[] = [];
@@ -31,11 +30,19 @@ export class RuledSurface {
         this.headLength = Math.max(10, Math.floor(this.maxPoints * 0.05));
     }
 
-    getLastPoint(): Point2D {
+    getHead(): Point2D {
         if (this.lines.length === 0) {
             return null;
         }
         return this.lines[this.lines.length - 1].point;
+    }
+
+    getLastLine(): Line {
+        return this.lines[this.lines.length - 1];
+    }
+
+    getFirstLine(): Line {
+        return this.lines[0];
     }
 
     getHeadLines(): Line[] {
@@ -51,47 +58,34 @@ export class RuledSurface {
 
     addLine(point: Point2D, angle: Angle) {
         const line = new Line(point, angle, this.v);
-        if (this.lines.length === 0) {
-            this.lines.push(line);
-        } else {
-            const previous = this.lines[this.lines.length - 1];
-            this.vertices.push(previous.endPoint().x);
-            this.vertices.push(previous.endPoint().y);
-            this.vertices.push(previous.startPoint().x);
-            this.vertices.push(previous.startPoint().y);
-            this.vertices.push(line.endPoint().x);
-            this.vertices.push(line.endPoint().y);
-            this.vertices.push(line.startPoint().x);
-            this.vertices.push(line.startPoint().y);
-            this.position.setValues(this.vertices);
-            this.lines.push(line);
-            this.lines = this.lines.slice(Math.max(this.lines.length - this.maxPoints, 0));
-            this.vertices = this.vertices.slice(Math.max(this.vertices.length - this.maxPoints * 8, 0));
-        }
+        this.vertices.push(line.endPoint().x);
+        this.vertices.push(line.endPoint().y);
+        this.vertices.push(line.startPoint().x);
+        this.vertices.push(line.startPoint().y);
+        this.lines.push(line);
+        const newLineIndex = Math.max(this.lines.length - this.maxPoints, 0);
+        const newVerticesIndex = Math.max(this.vertices.length - this.maxPoints * 4, 0);
+        this.lines = this.lines.slice(newLineIndex);
+        this.vertices = this.vertices.slice(newVerticesIndex);
+        this.position.setValues(this.vertices);
     }
 
-    getHitBox(previous: Line, last: Line): BoundingBox {
+    getHitBox(point: Point2D): BoundingBox {
         return new BoundingBox(
-            previous.startPoint(),
-            previous.endPoint(),
-            last.startPoint(),
-            last.endPoint()
+            new Point2D(point.x - this.v, point.y - this.v),
+            new Point2D(point.x - this.v, point.y + this.v),
+            new Point2D(point.x + this.v, point.y - this.v),
+            new Point2D(point.x + this.v, point.y + this.v)
         )
     }
 
     getAllHitBoxes(): BoundingBox[] {
         const boxes = [];
-        for (let i = 1; i < this.lines.length; i++) {
-            const previous = this.lines[i - 1];
-            const last = this.lines[i];
-            boxes.push(this.getHitBox(previous, last));
+        for (let i = 0; i < this.lines.length; i++) {
+            const line = this.lines[i];
+            boxes.push(this.getHitBox(line.point));
         }
         return boxes;
-    }
-
-    overlaps(other: BoundingBox) {
-        const all = this.getAllHitBoxes();
-        return all.some(box => box.overlaps(other));
     }
 
     getHeadPoints(): Point2D[] {

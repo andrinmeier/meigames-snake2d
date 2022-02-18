@@ -9,13 +9,13 @@ export class Game {
     private loop: GameLoop;
     private snakeGame: SnakeGame;
 
-    constructor(readonly context: any) {
+    constructor(readonly context: any, readonly canvas: any) {
     }
 
     init() {
         const shaderProgram = loadAndCompileShaders(this.context);
         const width = this.context.drawingBufferWidth;
-        this.snakeGame = new SnakeGame(this.context, shaderProgram);
+        this.snakeGame = new SnakeGame(this.context, shaderProgram, this.canvas);
         const scene = new Scene();
         scene.add(this.snakeGame);
         this.loop = new GameLoop(this.context, scene);

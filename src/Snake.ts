@@ -1,46 +1,52 @@
 import { glMatrix } from "gl-matrix";
 import { Angle } from "./Angle";
 import { BoundingBox } from "./BoundingBox";
+import ColorPalette from "./ColorPalette";
 import { ISceneObject } from "./ISceneObject";
-import { ModelMatrix } from "./ModelMatrix";
 import { Point2D } from "./Point2D";
-import { RuledSurface } from "./RuledSurface";
+import { SnakeBody } from "./SnakeBody";
 import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
-import { Square } from "./Square";
 import { Velocity } from "./Velocity";
 
 export class Snake implements ISceneObject {
     private currentVelocity: Velocity;
-    private readonly surface: RuledSurface;
+    private readonly body: SnakeBody;
     stopped: boolean;
+    private currentSpeed: number = 0.4;
 
-    constructor(readonly context: any, shaderProgram: any) {
-        this.currentVelocity = new Velocity(Angle.fromDegrees(0), 1);
-        this.surface = new RuledSurface(context, shaderProgram);
+    constructor(readonly context: any, readonly shaderProgram: any) {
+        this.currentVelocity = new Velocity(Angle.fromDegrees(0), this.currentSpeed);
+        this.body = new SnakeBody(context, shaderProgram);
     }
+
+    speedUp(): void {
+        this.currentSpeed += 0.05;
+        this.currentSpeed = Math.min(this.currentSpeed, 2.0);
+    }
+
     changeDirection(angleDifference: number) {
         const newAngle = Angle.fromDegrees((this.currentVelocity.angle.degrees + angleDifference) % 360);
-        this.currentVelocity = new Velocity(newAngle, 1);
+        this.currentVelocity = new Velocity(newAngle, this.currentSpeed);
     }
 
-    changeBodyLength(newLength: number): void {
-        this.surface.setMaxPoints(newLength);
+    restrictBodyLength(newLength: number): void {
+        this.body.setMaxPoints(newLength);
     }
 
     increaseBodyLength(addedLength: number): void {
-        this.surface.increaseMaxPoints(addedLength);
+        this.body.increaseMaxPoints(addedLength);
     }
 
     grow(count: number): void {
         let pointsCount = count;
-        let previous = this.surface.getLastPoint();
+        let previous = this.body.getHead();
         if (!previous) {
-            previous = new Point2D(10, 10);
+            previous = new Point2D(50, 50);
         }
         while (pointsCount > 0) {
             const newPoint = previous.add(this.currentVelocity);
-            this.surface.addLine(newPoint, this.currentVelocity.angle);
+            this.body.addLine(newPoint, this.currentVelocity.angle);
             previous = newPoint;
             pointsCount--;
         }
@@ -56,23 +62,73 @@ export class Snake implements ISceneObject {
         if (!this.stopped) {
             this.move(lagFix);
         }
-        this.surface.draw(lagFix);
+        this.body.draw(lagFix);
+        this.drawHead();
+        this.drawTail();
     }
 
-    overlaps(other: BoundingBox): boolean {
-        return this.surface.overlaps(other);
+    private drawTail(): void {
+        const vertices = [];
+        const position = new ScenePosition(this.context, this.shaderProgram);
+        const color = new SceneColor(this.context, this.shaderProgram);
+        const head = this.body.getFirstLine();
+        const center = head.point;
+        const angle = head.phi;
+        const startDegrees = (angle.degrees + 180) - 90;
+        const endDegrees = (angle.degrees + 180) + 90;
+        for (let deg = startDegrees; deg <= endDegrees; deg++) {
+            const x = center.x + 5 * Math.cos(glMatrix.toRadian(deg));
+            const y = center.y + 5 * Math.sin(glMatrix.toRadian(deg));
+            vertices.push(x);
+            vertices.push(y);
+        }
+        position.setValues(vertices);
+        color.setColor(ColorPalette.GREEN);        
+        position.activate();
+        color.activate();
+        this.context.drawArrays(this.context.TRIANGLE_FAN, 0, vertices.length / 2);
+    }
+
+    private drawHead(): void {
+        const vertices = [];
+        const position = new ScenePosition(this.context, this.shaderProgram);
+        const color = new SceneColor(this.context, this.shaderProgram);
+        const head = this.body.getLastLine();
+        const center = head.point;
+        const angle = head.phi;
+        const startDegrees = angle.degrees - 90;
+        const endDegrees = angle.degrees + 90;
+        for (let deg = startDegrees; deg <= endDegrees; deg++) {
+            const x = center.x + 5 * Math.cos(glMatrix.toRadian(deg));
+            const y = center.y + 5 * Math.sin(glMatrix.toRadian(deg));
+            vertices.push(x);
+            vertices.push(y);
+        }
+        position.setValues(vertices);
+        color.setColor(ColorPalette.GREEN);        
+        position.activate();
+        color.activate();
+        this.context.drawArrays(this.context.TRIANGLE_FAN, 0, vertices.length / 2);
+    }
+
+    getHitBoxes(): BoundingBox[] {
+        return this.body.getAllHitBoxes();
     }
 
     getHeadPoints(): Point2D[] {
-        return this.surface.getHeadPoints();
+        return this.body.getHeadPoints();
     }
 
     anyInside(points: Point2D[]): boolean {
-        return this.surface.anyInside(points);
+        return this.body.anyInside(points);
     }
 
     hitItself(): boolean {
-        return this.surface.hitItself();
+        return this.body.hitItself();
+    }
+
+    getHead(): Point2D {
+        return this.body.getHead();
     }
 
     private move(speedFactor: number): void {
