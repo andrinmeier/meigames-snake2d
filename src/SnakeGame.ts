@@ -79,8 +79,12 @@ export class SnakeGame implements ISceneObject {
             this.snake.changeDirection(-7.5);
         }
         if (this.mobilePlayer.swipeHappened()) {
-            const deg = this.mobilePlayer.getSwipeAngleAndConsume(this.snake.getHead()).degrees;
-            this.snake.changeDirection(5 * deg);
+            if (this.mobilePlayer.swipedLeft()) {
+                this.snake.changeDirection(30);
+            } else if (this.mobilePlayer.swipedRight()) {
+                this.snake.changeDirection(-30);
+            }
+            this.mobilePlayer.consume();
         }
         this.snake.update();
         const snakeHead = this.snake.getHeadPoints();

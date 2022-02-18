@@ -31,16 +31,18 @@ export class MobilePlayer {
         return this.startPoint !== undefined && this.endPoint !== undefined;
     }
 
-    getSwipeAngleAndConsume(headPoint: Point2D): Angle {
-        const startVec = new Point2D(this.startPoint.x - headPoint.x, this.startPoint.y - headPoint.y);
-        const normalizedStart = Math.sqrt(Math.pow(startVec.x, 2) + Math.pow(startVec.y, 2));
-        const startNormal = new Point2D(startVec.x / normalizedStart, startVec.y / normalizedStart);
-        const endVec = new Point2D(this.endPoint.x - headPoint.x, this.endPoint.y - headPoint.y);
-        const normalizedEnd = Math.sqrt(Math.pow(endVec.x, 2) + Math.pow(endVec.y, 2));
-        const endNormal = new Point2D(endVec.x / normalizedEnd, endVec.y / normalizedEnd);
-        const cosPhi = startNormal.x * endNormal.x + startNormal.y * endNormal.y;
+    swipedLeft(): boolean {
+        const endVec = new Point2D(this.endPoint.x - this.startPoint.x, this.endPoint.y - this.startPoint.y);
+        return endVec.x < 0;
+    }
+
+    swipedRight(): boolean {
+        const endVec = new Point2D(this.endPoint.x - this.startPoint.x, this.endPoint.y - this.startPoint.y);
+        return endVec.x > 0;
+    }
+
+    consume(): void {
         delete this.startPoint;
         delete this.endPoint;
-        return Angle.fromRad(Math.acos(cosPhi));
     }
 }
