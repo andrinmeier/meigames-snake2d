@@ -7,15 +7,14 @@ import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
 
 export class SnakeBody {
-    lines: Line[] = [];
-    private maxPoints: number = 10;
-    vertices: number[] = [];
-    private readonly v = 5;
+    private lines: Line[] = [];
+    private maxPoints: number;
+    private vertices: number[] = [];
     private readonly position: ScenePosition;
     private readonly color: SceneColor;
     private headLength: number = 1;
 
-    constructor(readonly context: any, shaderProgram: any) {
+    constructor(readonly context: any, shaderProgram: any, private readonly bodySize: number) {
         this.position = new ScenePosition(this.context, shaderProgram);
         this.color = new SceneColor(this.context, shaderProgram);
     }
@@ -26,7 +25,7 @@ export class SnakeBody {
     }
 
     increaseMaxPoints(addedLength: number): void {
-        this.maxPoints += addedLength;
+        this.maxPoints += addedLength
         this.headLength = Math.max(10, Math.floor(this.maxPoints * 0.05));
     }
 
@@ -57,7 +56,7 @@ export class SnakeBody {
     }
 
     addLine(point: Point2D, angle: Angle) {
-        const line = new Line(point, angle, this.v);
+        const line = new Line(point, angle, this.bodySize);
         this.vertices.push(line.endPoint().x);
         this.vertices.push(line.endPoint().y);
         this.vertices.push(line.startPoint().x);
@@ -72,10 +71,10 @@ export class SnakeBody {
 
     getHitBox(point: Point2D): BoundingBox {
         return new BoundingBox(
-            new Point2D(point.x - this.v, point.y - this.v),
-            new Point2D(point.x - this.v, point.y + this.v),
-            new Point2D(point.x + this.v, point.y - this.v),
-            new Point2D(point.x + this.v, point.y + this.v)
+            new Point2D(point.x - this.bodySize, point.y - this.bodySize),
+            new Point2D(point.x - this.bodySize, point.y + this.bodySize),
+            new Point2D(point.x + this.bodySize, point.y - this.bodySize),
+            new Point2D(point.x + this.bodySize, point.y + this.bodySize)
         )
     }
 

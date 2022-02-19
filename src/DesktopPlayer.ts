@@ -34,6 +34,11 @@ export class DesktopPlayer {
         window.addEventListener("keyup", this.onKeyup, false);
     }
 
+    cleanup() {
+        window.removeEventListener("keydown", this.onKeydown, false);
+        window.removeEventListener("keyup", this.onKeyup, false);
+    }
+
     onKeydown = (event) => {
         this.pressed[event.code] = true;
     };

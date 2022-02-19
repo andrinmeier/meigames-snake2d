@@ -7,15 +7,23 @@ export class Game {
     private onScoreChanged: (newScore: number) => void;
     private onGameDone: () => void;
     private loop: GameLoop;
+    private shaderProgram: any;
     private snakeGame: SnakeGame;
 
     constructor(readonly context: any, readonly canvas: any) {
+        this.shaderProgram = loadAndCompileShaders(this.context);
     }
 
-    init() {
-        const shaderProgram = loadAndCompileShaders(this.context);
-        const width = this.context.drawingBufferWidth;
-        this.snakeGame = new SnakeGame(this.context, shaderProgram, this.canvas);
+    start() {
+        this.init();
+        this.loop.start();
+    }
+
+    private init() {
+        if (this.snakeGame) {
+            this.snakeGame.cleanup();
+        }
+        this.snakeGame = new SnakeGame(this.context, this.shaderProgram, this.canvas);
         const scene = new Scene();
         scene.add(this.snakeGame);
         this.loop = new GameLoop(this.context, scene);
@@ -25,7 +33,7 @@ export class Game {
             }
             this.onScoreChanged(newScore);
         });
-        this.snakeGame.registerOnGameDone(() => {            
+        this.snakeGame.registerOnGameDone(() => {
             this.loop.stop();
             if (!this.onGameDone) {
                 return;
@@ -33,10 +41,6 @@ export class Game {
             this.onGameDone()
         });
         this.loop.init();
-    }
-
-    start() {
-        this.loop.start();
     }
 
     registerOnScoreChanged(callback: (newScore: number) => void) {

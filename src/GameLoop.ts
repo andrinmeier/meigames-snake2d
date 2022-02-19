@@ -9,29 +9,32 @@ export class GameLoop {
     constructor(readonly context: any, readonly scene: Scene) { }
 
     init() {
-        this.context.clearColor(225/255, 225/255, 225/255, 1);
+        this.context.clearColor(225 / 255, 225 / 255, 225 / 255, 1);
     }
 
-    drawAnimated(current) {
+    drawAnimated = (current) => {
         if (this.stopped) {
             return;
         }
+        const oldPrevious = this.previous;
         const elapsed = current - this.previous;
         this.previous = current;
-        this.lag += elapsed;
-        while (this.lag >= this.MS_PER_UPDATE) {
-            this.scene.update();
-            this.lag -= this.MS_PER_UPDATE;
+        if (oldPrevious > 0) {
+            this.lag += elapsed;
+            while (this.lag >= this.MS_PER_UPDATE) {
+                this.scene.update();
+                this.lag -= this.MS_PER_UPDATE;
+            }
+            this.context.clear(this.context.COLOR_BUFFER_BIT);
+            const restLag = this.lag / this.MS_PER_UPDATE;
+            this.scene.draw(restLag);
         }
-        this.context.clear(this.context.COLOR_BUFFER_BIT);
-        const restLag = this.lag / this.MS_PER_UPDATE;
-        this.scene.draw(restLag);
-        window.requestAnimationFrame((current) => this.drawAnimated(current));
+        window.requestAnimationFrame(this.drawAnimated);
     }
 
     start() {
         this.stopped = false;
-        window.requestAnimationFrame((current) => this.drawAnimated(current));
+        window.requestAnimationFrame(this.drawAnimated);
     }
 
     stop() {

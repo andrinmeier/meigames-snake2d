@@ -13,14 +13,13 @@ export class Food implements ISceneObject {
     private verticesLength: number;
     private center: Point2D;
 
-    constructor(private foodRadius: number, readonly context: any, shaderProgram: any) {
+    constructor(private readonly foodRadius: number, readonly context: any, shaderProgram: any) {
         this.position = new ScenePosition(this.context, shaderProgram);
         this.color = new SceneColor(this.context, shaderProgram);
     }
 
-    resize(newRadius: number) {
-        this.foodRadius = newRadius;
-        this.init();
+    getRadiusValue() {
+        return this.foodRadius;
     }
 
     respawn(center: Point2D) {
@@ -36,9 +35,10 @@ export class Food implements ISceneObject {
         let rightTop: Point2D;
         vertices.push(this.center.x)
         vertices.push(this.center.y);
+        const radius = this.getRadiusValue();
         for (let degrees = 0; degrees <= 360; degrees++) {
-            const x = this.center.x + this.foodRadius * Math.cos(glMatrix.toRadian(degrees));
-            const y = this.center.y + this.foodRadius * Math.sin(glMatrix.toRadian(degrees));
+            const x = this.center.x + radius * Math.cos(glMatrix.toRadian(degrees));
+            const y = this.center.y + radius * Math.sin(glMatrix.toRadian(degrees));
             vertices.push(x);
             vertices.push(y);
             if (degrees === 45) {

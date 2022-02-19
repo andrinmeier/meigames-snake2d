@@ -15,6 +15,6 @@ export class Angle {
     }
 
     static fromDegrees(degrees: number) {
-        return new Angle(glMatrix.toRadian(degrees));
+        return new Angle(glMatrix.toRadian(degrees % 360));
     }
 }

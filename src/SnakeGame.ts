@@ -1,21 +1,15 @@
-import { BoundingBox } from "./BoundingBox";
 import { Food } from "./Food";
 import { GameArea } from "./GameArea";
 import { ISceneObject } from "./ISceneObject";
-import interpolate from "./LinearInterpolation";
-import { ModelMatrix } from "./ModelMatrix";
 import { OrthographicProjection } from "./OrthographicProjection";
 import { OutsideGameArea } from "./OutsideGameArea";
 import { DesktopPlayer } from "./DesktopPlayer";
-import { Point2D } from "./Point2D";
 import randomValue from "./RandomValue";
-import { SceneColor } from "./SceneColor";
-import { ScenePosition } from "./ScenePosition";
 import { SmoothCanvas } from "./SmoothCanvas";
 import { Snake } from "./Snake";
-import { Square } from "./Square";
 import { ViewMatrix } from "./ViewMatrix";
 import { MobilePlayer } from "./MobilePlayer";
+import { Point2D } from "./Point2D";
 
 export class SnakeGame implements ISceneObject {
     private onScoreChanged: (newScore: number) => void;
@@ -25,25 +19,25 @@ export class SnakeGame implements ISceneObject {
     private food: Food;
     private readonly desktopPlayer: DesktopPlayer;
     private readonly mobilePlayer: MobilePlayer;
-    private readonly foodRadius: number = 5;
     private readonly viewMatrix: ViewMatrix;
     private readonly projection: OrthographicProjection;
     private readonly outsideGame: OutsideGameArea;
     private readonly smoothCanvas: SmoothCanvas;
     private readonly gameArea: GameArea;
 
-    constructor(private readonly context: any, private readonly shaderProgram: any, private readonly canvas: any) {
+    constructor(context: any, shaderProgram: any, private readonly canvas: any) {
         this.viewMatrix = new ViewMatrix(context, shaderProgram);
         this.projection = new OrthographicProjection(context, shaderProgram);
         this.smoothCanvas = new SmoothCanvas(this.canvas);
-        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 8 * this.foodRadius);
+        const initialFoodRadius = 5;
+        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 8 * initialFoodRadius);
         this.outsideGame = new OutsideGameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
         this.desktopPlayer = new DesktopPlayer();
-        this.mobilePlayer = new MobilePlayer();
-        this.snake = new Snake(context, shaderProgram);
+        this.mobilePlayer = new MobilePlayer(canvas);
+        this.snake = new Snake(context, shaderProgram, 5, 0.4);
         this.snake.restrictBodyLength(50);
         this.snake.grow(200);
-        this.food = new Food(this.foodRadius, context, shaderProgram);
+        this.food = new Food(5, context, shaderProgram);
         this.respawnFood();
     }
 
@@ -59,6 +53,11 @@ export class SnakeGame implements ISceneObject {
         return true;
     }
 
+    cleanup() {
+        this.desktopPlayer.cleanup();
+        this.mobilePlayer.cleanup();
+        this.smoothCanvas.cleanup();
+    }
 
     respawnFood() {
         if (this.respawnFoodRandomly()) {
@@ -79,12 +78,8 @@ export class SnakeGame implements ISceneObject {
             this.snake.changeDirection(-7.5);
         }
         if (this.mobilePlayer.swipeHappened()) {
-            if (this.mobilePlayer.swipedLeft()) {
-                this.snake.changeDirection(30);
-            } else if (this.mobilePlayer.swipedRight()) {
-                this.snake.changeDirection(-30);
-            }
-            this.mobilePlayer.consume();
+            const angle = this.mobilePlayer.getSwipeAngle();
+            this.snake.approximateDirection(angle.degrees);
         }
         this.snake.update();
         const snakeHead = this.snake.getHeadPoints();

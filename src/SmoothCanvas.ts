@@ -3,6 +3,7 @@ export class SmoothCanvas {
     private context: any;
     private readonly resizeObserver: ResizeObserver;
     private readonly canvasToDisplaySizeMap: Map<any, number[]>;
+    private readonly baseSize: number = 256;
 
     constructor(readonly canvas: any) {
         this.canvasToDisplaySizeMap = new Map([[canvas, [canvas.clientWidth, canvas.clientHeight]]]);
@@ -16,6 +17,10 @@ export class SmoothCanvas {
         }
         this.context = this.canvas.getContext("webgl2");
         this.recalculate();
+    }
+
+    cleanup() {
+        this.resizeObserver.disconnect();
     }
 
     onResize(entries: any[]) {
@@ -66,20 +71,33 @@ export class SmoothCanvas {
     }
 
     getLogicalWidth() {
-        if (this.canvas.width <= this.canvas.height) {
-            return 256;
+        if (this.getCanvasWidth() <= this.getCanvasHeight()) {
+            return this.baseSize;
         } else {
-            const ratio = this.canvas.width / this.canvas.height;
-            return 256 * ratio;
+            const ratio = this.getCanvasWidth() / this.getCanvasHeight();
+            return this.baseSize * ratio;
         }
     }
 
     getLogicalHeight() {
-        if (this.canvas.height <= this.canvas.width) {
-            return 256;
+        if (this.getCanvasHeight() <= this.getCanvasWidth()) {
+            return this.baseSize;
         } else {
-            const ratio = this.canvas.height / this.canvas.width;
-            return 256 * ratio;
+            const ratio = this.getCanvasHeight() / this.getCanvasWidth();
+            return this.baseSize * ratio;
         }
+    }
+
+    getSmallestCanvasLength() {
+        const widthHeight = this.canvasToDisplaySizeMap.get(this.canvas);
+        return Math.min(widthHeight[0], widthHeight[1]);
+    }
+
+    getCanvasWidth() {
+        return this.canvasToDisplaySizeMap.get(this.canvas)[0];
+    }
+
+    getCanvasHeight() {
+        return this.canvasToDisplaySizeMap.get(this.canvas)[1];
     }
 }

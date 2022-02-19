@@ -8,16 +8,14 @@ import { SnakeBody } from "./SnakeBody";
 import { SceneColor } from "./SceneColor";
 import { ScenePosition } from "./ScenePosition";
 import { Velocity } from "./Velocity";
-
 export class Snake implements ISceneObject {
     private currentVelocity: Velocity;
     private readonly body: SnakeBody;
     stopped: boolean;
-    private currentSpeed: number = 0.4;
 
-    constructor(readonly context: any, readonly shaderProgram: any) {
+    constructor(readonly context: any, readonly shaderProgram: any, private readonly bodySize: number, private currentSpeed: number) {
         this.currentVelocity = new Velocity(Angle.fromDegrees(0), this.currentSpeed);
-        this.body = new SnakeBody(context, shaderProgram);
+        this.body = new SnakeBody(context, shaderProgram, bodySize);
     }
 
     speedUp(): void {
@@ -26,8 +24,34 @@ export class Snake implements ISceneObject {
     }
 
     changeDirection(angleDifference: number) {
-        const newAngle = Angle.fromDegrees((this.currentVelocity.angle.degrees + angleDifference) % 360);
+        const newAngle = Angle.fromDegrees(this.currentVelocity.angle.degrees + angleDifference);
         this.currentVelocity = new Velocity(newAngle, this.currentSpeed);
+    }
+
+    approximateDirection(wantedDegrees: number) {
+        const currentDegrees = this.currentVelocity.angle.degrees;
+        const alpha = wantedDegrees - currentDegrees;
+        const beta = wantedDegrees - currentDegrees + 360;
+        const gamma = wantedDegrees - currentDegrees - 360;
+        if (Math.abs(alpha) < Math.abs(beta) && Math.abs(alpha) < Math.abs(gamma)) {
+            if (alpha < 0) {
+                this.changeDirection(-5.0);
+            } else {
+                this.changeDirection(5.0);
+            }
+        } else if (Math.abs(beta) < Math.abs(alpha) && Math.abs(beta) < Math.abs(gamma)) {
+            if (beta < 0) {
+                this.changeDirection(-5.0);
+            } else {
+                this.changeDirection(5.0);
+            }
+        } else if (Math.abs(gamma) < Math.abs(alpha) && Math.abs(gamma) < Math.abs(beta)) {
+            if (gamma < 0) {
+                this.changeDirection(-5.0);
+            } else {
+                this.changeDirection(5.0);
+            }
+        }
     }
 
     restrictBodyLength(newLength: number): void {
@@ -54,7 +78,7 @@ export class Snake implements ISceneObject {
 
     update(): void {
         if (!this.stopped) {
-            this.move(1.0);
+            this.move(1);
         }
     }
 
@@ -77,13 +101,13 @@ export class Snake implements ISceneObject {
         const startDegrees = (angle.degrees + 180) - 90;
         const endDegrees = (angle.degrees + 180) + 90;
         for (let deg = startDegrees; deg <= endDegrees; deg++) {
-            const x = center.x + 5 * Math.cos(glMatrix.toRadian(deg));
-            const y = center.y + 5 * Math.sin(glMatrix.toRadian(deg));
+            const x = center.x + this.bodySize * Math.cos(glMatrix.toRadian(deg));
+            const y = center.y + this.bodySize * Math.sin(glMatrix.toRadian(deg));
             vertices.push(x);
             vertices.push(y);
         }
         position.setValues(vertices);
-        color.setColor(ColorPalette.GREEN);        
+        color.setColor(ColorPalette.GREEN);
         position.activate();
         color.activate();
         this.context.drawArrays(this.context.TRIANGLE_FAN, 0, vertices.length / 2);
@@ -99,13 +123,13 @@ export class Snake implements ISceneObject {
         const startDegrees = angle.degrees - 90;
         const endDegrees = angle.degrees + 90;
         for (let deg = startDegrees; deg <= endDegrees; deg++) {
-            const x = center.x + 5 * Math.cos(glMatrix.toRadian(deg));
-            const y = center.y + 5 * Math.sin(glMatrix.toRadian(deg));
+            const x = center.x + this.bodySize * Math.cos(glMatrix.toRadian(deg));
+            const y = center.y + this.bodySize * Math.sin(glMatrix.toRadian(deg));
             vertices.push(x);
             vertices.push(y);
         }
         position.setValues(vertices);
-        color.setColor(ColorPalette.GREEN);        
+        color.setColor(ColorPalette.GREEN);
         position.activate();
         color.activate();
         this.context.drawArrays(this.context.TRIANGLE_FAN, 0, vertices.length / 2);
