@@ -1,6 +1,6 @@
 {
   "name": "meigames-snake2d",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "description": "The classic snake 2D game reimplemented in WebGL 2 for mei-games.com",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,5 +13,8 @@
   "scripts": {
     "build": "tsc"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.5.5"
+  }
 }

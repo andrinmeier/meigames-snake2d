@@ -9,7 +9,7 @@ export class GameLoop {
     constructor(readonly context: any, readonly scene: Scene) { }
 
     init() {
-        this.context.clearColor(0, 0, 0, 1);
+        this.context.clearColor(225/255, 225/255, 225/255, 1);
     }
 
     drawAnimated(current) {

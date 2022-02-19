@@ -25,7 +25,7 @@ export class SnakeGame implements ISceneObject {
     private food: Food;
     private readonly desktopPlayer: DesktopPlayer;
     private readonly mobilePlayer: MobilePlayer;
-    private readonly foodRadius: number = 7.5;
+    private readonly foodRadius: number = 5;
     private readonly viewMatrix: ViewMatrix;
     private readonly projection: OrthographicProjection;
     private readonly outsideGame: OutsideGameArea;
@@ -36,7 +36,7 @@ export class SnakeGame implements ISceneObject {
         this.viewMatrix = new ViewMatrix(context, shaderProgram);
         this.projection = new OrthographicProjection(context, shaderProgram);
         this.smoothCanvas = new SmoothCanvas(this.canvas);
-        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 2 * this.foodRadius);
+        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 8 * this.foodRadius);
         this.outsideGame = new OutsideGameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
         this.desktopPlayer = new DesktopPlayer();
         this.mobilePlayer = new MobilePlayer();

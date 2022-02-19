@@ -65,7 +65,7 @@ export class Food implements ISceneObject {
 
     draw(lagFix: number): void {
         this.position.activate();
-        this.color.setColor(ColorPalette.NEON);
+        this.color.setColor(ColorPalette.DARKRED);
         this.color.activate();
         this.context.drawArrays(this.context.TRIANGLE_FAN, 0, this.verticesLength / 2);
     }
