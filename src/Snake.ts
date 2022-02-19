@@ -33,7 +33,7 @@ export class Snake implements ISceneObject {
         const alpha = wantedDegrees - currentDegrees;
         const beta = wantedDegrees - currentDegrees + 360;
         const gamma = wantedDegrees - currentDegrees - 360;
-        if (Math.abs(alpha) < Math.abs(beta) && Math.abs(alpha) < Math.abs(gamma)) {
+        if (Math.abs(alpha) <= Math.abs(beta) && Math.abs(alpha) <= Math.abs(gamma)) {
             if (alpha < 0) {
                 this.changeDirection(-5.0);
             } else {

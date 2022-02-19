@@ -15,6 +15,11 @@ export class Angle {
     }
 
     static fromDegrees(degrees: number) {
-        return new Angle(glMatrix.toRadian(degrees % 360));
+        let normalized = degrees % 360;
+        if (normalized < 0) {
+            normalized += 360;
+        }
+        console.log({normalized})
+        return new Angle(glMatrix.toRadian(normalized));
     }
 }
