@@ -42,7 +42,7 @@ export class SnakeGame implements ISceneObject {
         this.snake.restrictBodyLength(50);
         this.snake.grow(50);
         const circle = new Circle(
-            context, 
+            context,
             new ObjectPosition(context, shaderProgram),
             new ObjectColor(context, shaderProgram),
             new ModelMatrix(context, shaderProgram));
@@ -101,6 +101,9 @@ export class SnakeGame implements ISceneObject {
     }
 
     private checkForCollisions(snakeHead: GamePoint2D[]): void {
+        if (this.snake.stopped) {
+            return;
+        }
         if (this.snake.hitItself() || this.outsideGame.inside(snakeHead)) {
             this.snake.stopped = true;
             this.endGame();
@@ -108,6 +111,9 @@ export class SnakeGame implements ISceneObject {
     }
 
     private checkForEatenFood(snakeHead: GamePoint2D[]): void {
+        if (this.snake.stopped) {
+            return;
+        }
         if (this.food.anyPointsInside(snakeHead)) {
             this.score++;
             if (this.onScoreChanged) {

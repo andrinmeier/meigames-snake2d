@@ -21,10 +21,12 @@ export class Game {
         this.loop.start();
     }
 
+    stop() {
+        this.loop.stop();
+        this.snakeGame.cleanup();
+    }
+
     private init() {
-        if (this.snakeGame) {
-            this.snakeGame.cleanup();
-        }
         this.snakeGame = new SnakeGame(this.context, this.shaderProgram, this.canvas);
         this.fpsRecorder = new FPSRecorder();
         this.fpsRecorder.registerOnLowFPSDetected(this.onLowFPSDetected);
