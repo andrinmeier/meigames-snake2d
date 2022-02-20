@@ -6,7 +6,7 @@ import { SnakeGame } from "./SnakeGame";
 
 export class Game {
     private onScoreChanged: (newScore: number) => void;
-    private onGameDone: () => void;
+    private onGameDone: (finalScore: number) => void;
     private loop: GameLoop;
     private shaderProgram: any;
     private snakeGame: SnakeGame;
@@ -37,12 +37,12 @@ export class Game {
             }
             this.onScoreChanged(newScore);
         });
-        this.snakeGame.registerOnGameDone(() => {
+        this.snakeGame.registerOnGameDone((finalScore: number) => {
             this.loop.stop();
             if (!this.onGameDone) {
                 return;
             }
-            this.onGameDone()
+            this.onGameDone(finalScore);
         });
         this.loop.init();
     }
@@ -55,7 +55,7 @@ export class Game {
         this.onScoreChanged = callback;
     }
 
-    registerOnGameDone(callback: () => void) {
+    registerOnGameDone(callback: (finalScore: number) => void) {
         this.onGameDone = callback;
     }
 }

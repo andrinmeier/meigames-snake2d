@@ -17,7 +17,7 @@ import { ObjectColor } from "./ObjectColor";
 
 export class SnakeGame implements ISceneObject {
     private onScoreChanged: (newScore: number) => void;
-    private onGameDone: () => void;
+    private onGameDone: (finalScore: number) => void;
     private score: number = 0;
     private snake: Snake;
     private food: Food;
@@ -142,14 +142,14 @@ export class SnakeGame implements ISceneObject {
         if (!this.onGameDone) {
             return;
         }
-        this.onGameDone();
+        this.onGameDone(this.score);
     }
 
     registerOnScoreChanged(callback: (newScore: number) => void) {
         this.onScoreChanged = callback;
     }
 
-    registerOnGameDone(callback: () => void) {
+    registerOnGameDone(callback: (finalScore: number) => void) {
         this.onGameDone = callback;
     }
 }
