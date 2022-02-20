@@ -3,7 +3,7 @@ import { mat4 } from "gl-matrix";
 export class OrthographicProjection {
     private readonly matrixId;
 
-    constructor(private readonly context: any, private readonly shaderProgram: any) {
+    constructor(private readonly context: any, shaderProgram: any) {
         this.matrixId = context.getUniformLocation(shaderProgram, "projectionMatrix");
     }
 

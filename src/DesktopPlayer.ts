@@ -11,14 +11,6 @@ export class DesktopPlayer {
             DOWN: "KeyS",
         };
         this.hookupEventListeners();
-    }
-
-    movesUp() {
-        return this.isPressed(this.key.UP);
-    }    
-
-    movesDown() {
-        return this.isPressed(this.key.DOWN);
     }   
 
     movesLeft() {

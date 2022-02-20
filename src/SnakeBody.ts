@@ -2,21 +2,24 @@ import { Angle } from "./Angle";
 import { BoundingBox } from "./BoundingBox";
 import ColorPalette from "./ColorPalette";
 import { Line } from "./Line";
-import { Point2D } from "./Point2D";
-import { SceneColor } from "./SceneColor";
-import { ScenePosition } from "./ScenePosition";
+import { GamePoint2D } from "./GamePoint2D";
+import { ObjectColor } from "./ObjectColor";
+import { ObjectPosition } from "./ObjectPosition";
+import { mat3 } from "gl-matrix";
+import { ModelMatrix } from "./ModelMatrix";
+import { lineSegmentsIntersect } from "./Math";
 
 export class SnakeBody {
     private lines: Line[] = [];
     private maxPoints: number;
     private vertices: number[] = [];
-    private readonly position: ScenePosition;
-    private readonly color: SceneColor;
+    private readonly position: ObjectPosition;
+    private readonly color: ObjectColor;
     private headLength: number = 1;
 
-    constructor(readonly context: any, shaderProgram: any, private readonly bodyRadius: number) {
-        this.position = new ScenePosition(this.context, shaderProgram);
-        this.color = new SceneColor(this.context, shaderProgram);
+    constructor(readonly context: any, shaderProgram: any, private readonly bodyRadius: number, private readonly modelMatrix: ModelMatrix) {
+        this.position = new ObjectPosition(this.context, shaderProgram);
+        this.color = new ObjectColor(this.context, shaderProgram);
     }
 
     setMaxPoints(maxPoints: number): void {
@@ -29,7 +32,7 @@ export class SnakeBody {
         this.headLength = Math.max(10, Math.floor(this.maxPoints * 0.05));
     }
 
-    getHead(): Point2D {
+    getHead(): GamePoint2D {
         const headLine = this.getHeadLine();
         if (!headLine) {
             return null;
@@ -56,7 +59,7 @@ export class SnakeBody {
         return headLines;
     }
 
-    addSlice(point: Point2D, angle: Angle) {
+    addSlice(point: GamePoint2D, angle: Angle) {
         const line = new Line(point, angle, this.bodyRadius);
         this.vertices.push(line.endPoint().x);
         this.vertices.push(line.endPoint().y);
@@ -70,12 +73,12 @@ export class SnakeBody {
         this.position.setValues(this.vertices);
     }
 
-    getHitBox(point: Point2D): BoundingBox {
+    getHitBox(point: GamePoint2D): BoundingBox {
         return new BoundingBox(
-            new Point2D(point.x - this.bodyRadius, point.y - this.bodyRadius),
-            new Point2D(point.x - this.bodyRadius, point.y + this.bodyRadius),
-            new Point2D(point.x + this.bodyRadius, point.y - this.bodyRadius),
-            new Point2D(point.x + this.bodyRadius, point.y + this.bodyRadius)
+            new GamePoint2D(point.x - this.bodyRadius, point.y - this.bodyRadius),
+            new GamePoint2D(point.x - this.bodyRadius, point.y + this.bodyRadius),
+            new GamePoint2D(point.x + this.bodyRadius, point.y - this.bodyRadius),
+            new GamePoint2D(point.x + this.bodyRadius, point.y + this.bodyRadius)
         )
     }
 
@@ -88,7 +91,7 @@ export class SnakeBody {
         return boxes;
     }
 
-    getHeadPoints(): Point2D[] {
+    getHeadPoints(): GamePoint2D[] {
         const points = [];
         for (const headLine of this.getHeadLines()) {
             const linePoints = this.getIntersectionPoints(headLine);
@@ -97,7 +100,7 @@ export class SnakeBody {
         return points;
     }
 
-    getIntersectionPoints(line: Line): Point2D[] {
+    getIntersectionPoints(line: Line): GamePoint2D[] {
         const all = line.getAllPointsOnLine();
         const size = all.length;
         const firstQuarter = Math.floor(size * 0.20);
@@ -106,77 +109,35 @@ export class SnakeBody {
         return innerBodyOnly;
     }
 
-    onSegment(pointA: Point2D, pointB: Point2D, pointC: Point2D) {
-        if (pointB.x <= Math.max(pointA.x, pointC.x) && pointB.x >= Math.min(pointA.x, pointC.x) &&
-            pointB.y <= Math.max(pointA.y, pointC.y) && pointB.y >= Math.min(pointA.y, pointC.y)) {
-            return true;
-        }
-        return false;
-    }
-
-    orientation(pointA: Point2D, pointB: Point2D, pointC: Point2D) {
-        let val = (pointB.y - pointA.y) * (pointC.x - pointB.x) - (pointB.x - pointA.x) * (pointC.y - pointB.y);
-        if (val == 0) {
-            return 0;
-        }
-        return (val > 0) ? 1 : 2;
-    }
-
-    lineSegmentsIntersect(a: Point2D, b: Point2D, c: Point2D, d: Point2D) {
-        // Ignore collinearity.
-        if (a.x - b.x !== 0 && c.x - d.x !== 0) {
-            const slope1 = (a.y - b.y) / (a.x - b.x);
-            const slope2 = (c.y - d.y) / (c.x - d.x);
-            if (Math.abs((slope1 - slope2)) < 0.001) {
-                return false;
-            }
-        }
-        let o1 = this.orientation(a, b, c);
-        let o2 = this.orientation(a, b, d);
-        let o3 = this.orientation(c, d, a);
-        let o4 = this.orientation(c, d, b);
-        if (o1 != o2 && o3 != o4) {
-            return true;
-        }
-        if (o1 == 0 && this.onSegment(a, c, b)) {
-            return true;
-        }
-        if (o2 == 0 && this.onSegment(a, d, b)) {
-            return true;
-        }
-        if (o3 == 0 && this.onSegment(c, a, d)) {
-            return true;
-        }
-        if (o4 == 0 && this.onSegment(c, b, d)) {
-            return true;
-        }
-        return false;
-    }
-
     hitItself() {
         const segmentLength = 10;
         const buffer = 5 * segmentLength;
         if (this.lines.length < (2 * segmentLength + buffer)) {
             return false;
         }
+        // Represent the head as a straight line inside the skeleton.
         const head = [this.lines[this.lines.length - segmentLength].center, this.lines[this.lines.length - 1].center];
+        // Go through the entire body to check if the head intersects any part of it.
         for (let i = 0; i < (this.lines.length - segmentLength - buffer); i += segmentLength) {
             const current = [this.lines[i].center, this.lines[i + segmentLength].center];
-            if (this.lineSegmentsIntersect(current[0], current[1], head[0], head[1])) {
+            if (lineSegmentsIntersect(current[0], current[1], head[0], head[1])) {
                 return true;
             }
         }
         return false;
     }
 
-    anyInside(points: Point2D[]): boolean {
+    anyInside(points: GamePoint2D[]): boolean {
         const all = this.getAllHitBoxes();
-        return all.some(box => box.anyInside(points));
+        return all.some(box => box.anyPointInside(points));
     }
 
     draw(lagFix) {
+        const modelMat = mat3.create();
+        mat3.translate(modelMat, modelMat, [0, 0]);
+        this.modelMatrix.setValues(modelMat);
         this.position.activate();
-        this.color.setColor(ColorPalette.GREEN);
+        this.color.setColor(ColorPalette.SNAKE);
         this.color.activate();
         this.context.drawArrays(this.context.TRIANGLE_STRIP, 0, this.vertices.length / 2);
     }

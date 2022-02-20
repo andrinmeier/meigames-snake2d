@@ -1,4 +1,4 @@
-export class ScenePosition {
+export class ObjectPosition {
     private readonly positionId: any;
     private readonly buffer: any;
 

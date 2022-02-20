@@ -5,11 +5,15 @@ import { OrthographicProjection } from "./OrthographicProjection";
 import { OutsideGameArea } from "./OutsideGameArea";
 import { DesktopPlayer } from "./DesktopPlayer";
 import randomValue from "./RandomValue";
-import { SmoothCanvas } from "./SmoothCanvas";
+import { HighDPICanvas } from "./HighDPICanvas";
 import { Snake } from "./Snake";
 import { ViewMatrix } from "./ViewMatrix";
 import { MobilePlayer } from "./MobilePlayer";
-import { Point2D } from "./Point2D";
+import { GamePoint2D } from "./GamePoint2D";
+import { Circle } from "./Circle";
+import { ModelMatrix } from "./ModelMatrix";
+import { ObjectPosition } from "./ObjectPosition";
+import { ObjectColor } from "./ObjectColor";
 
 export class SnakeGame implements ISceneObject {
     private onScoreChanged: (newScore: number) => void;
@@ -22,27 +26,32 @@ export class SnakeGame implements ISceneObject {
     private readonly viewMatrix: ViewMatrix;
     private readonly projection: OrthographicProjection;
     private readonly outsideGame: OutsideGameArea;
-    private readonly smoothCanvas: SmoothCanvas;
+    private readonly highDPICanvas: HighDPICanvas;
     private readonly gameArea: GameArea;
 
     constructor(context: any, shaderProgram: any, private readonly canvas: any) {
         this.viewMatrix = new ViewMatrix(context, shaderProgram);
         this.projection = new OrthographicProjection(context, shaderProgram);
-        this.smoothCanvas = new SmoothCanvas(this.canvas);
+        this.highDPICanvas = new HighDPICanvas(this.canvas);
         const initialFoodRadius = 5;
-        this.gameArea = new GameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight(), 8 * initialFoodRadius);
-        this.outsideGame = new OutsideGameArea(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        this.gameArea = new GameArea(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight(), 8 * initialFoodRadius);
+        this.outsideGame = new OutsideGameArea(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight());
         this.desktopPlayer = new DesktopPlayer();
         this.mobilePlayer = new MobilePlayer(canvas);
         this.snake = new Snake(context, shaderProgram, 5, 0.4);
         this.snake.restrictBodyLength(50);
         this.snake.grow(50);
-        this.food = new Food(5, context, shaderProgram);
+        const circle = new Circle(
+            context, 
+            new ObjectPosition(context, shaderProgram),
+            new ObjectColor(context, shaderProgram),
+            new ModelMatrix(context, shaderProgram));
+        this.food = new Food(initialFoodRadius, circle);
         this.respawnFood();
     }
 
     switchToLowerQuality(): void {
-        this.smoothCanvas.disableHighDPI();
+        this.highDPICanvas.disableHighDPI();
     }
 
     private respawnFoodRandomly(): boolean {
@@ -60,7 +69,7 @@ export class SnakeGame implements ISceneObject {
     cleanup() {
         this.desktopPlayer.cleanup();
         this.mobilePlayer.cleanup();
-        this.smoothCanvas.cleanup();
+        this.highDPICanvas.cleanup();
     }
 
     respawnFood() {
@@ -73,9 +82,9 @@ export class SnakeGame implements ISceneObject {
     }
 
     update(): void {
-        this.smoothCanvas.recalculate();
-        this.gameArea.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
-        this.outsideGame.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
+        this.highDPICanvas.recalculate();
+        this.gameArea.resize(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight());
+        this.outsideGame.resize(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight());
         if (this.desktopPlayer.movesLeft()) {
             this.snake.changeDirection(7.5);
         } else if (this.desktopPlayer.movesRight()) {
@@ -87,11 +96,19 @@ export class SnakeGame implements ISceneObject {
         }
         this.snake.update();
         const snakeHead = this.snake.getHeadPoints();
+        this.checkForCollisions(snakeHead);
+        this.checkForEatenFood(snakeHead);
+    }
+
+    private checkForCollisions(snakeHead: GamePoint2D[]): void {
         if (this.snake.hitItself() || this.outsideGame.inside(snakeHead)) {
             this.snake.stopped = true;
             this.endGame();
         }
-        if (this.food.anyInside(snakeHead)) {
+    }
+
+    private checkForEatenFood(snakeHead: GamePoint2D[]): void {
+        if (this.food.anyPointsInside(snakeHead)) {
             this.score++;
             if (this.onScoreChanged) {
                 this.onScoreChanged(this.score);
@@ -100,32 +117,25 @@ export class SnakeGame implements ISceneObject {
             this.respawnFood();
             this.snake.speedUp();
         }
-        this.food.update();
     }
 
     draw(lagFix: number): void {
-        this.smoothCanvas.recalculate();
-        this.gameArea.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
-        this.outsideGame.resize(this.smoothCanvas.getLogicalWidth(), this.smoothCanvas.getLogicalHeight());
-        const width = this.smoothCanvas.getLogicalWidth();
-        const height = this.smoothCanvas.getLogicalHeight();
-        this.viewMatrix.setValues([width / 2, height / 2, 5], [width / 2, height / 2, 0], [0, 1, 0]);
-        this.projection.setValues(-width / 2, width / 2, -height / 2, height / 2, 4, 6);
+        this.highDPICanvas.recalculate();
+        this.gameArea.resize(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight());
+        this.outsideGame.resize(this.highDPICanvas.getLogicalWidth(), this.highDPICanvas.getLogicalHeight());
+        this.setCamera();
         this.snake.draw(lagFix);
         const snakeHead = this.snake.getHeadPoints();
-        if (this.snake.hitItself() || this.outsideGame.inside(snakeHead)) {
-            this.snake.stopped = true;
-            this.endGame();
-        }
-        if (this.food.anyInside(snakeHead)) {
-            this.score++;
-            if (this.onScoreChanged) {
-                this.onScoreChanged(this.score);
-            }
-            this.snake.increaseBodyLength(50);
-            this.respawnFood();
-        }
+        this.checkForCollisions(snakeHead);
+        this.checkForEatenFood(snakeHead);
         this.food.draw(lagFix);
+    }
+
+    private setCamera() {
+        const width = this.highDPICanvas.getLogicalWidth();
+        const height = this.highDPICanvas.getLogicalHeight();
+        this.viewMatrix.setValues([width / 2, height / 2, 5], [width / 2, height / 2, 0], [0, 1, 0]);
+        this.projection.setValues(-width / 2, width / 2, -height / 2, height / 2, 4, 6);
     }
 
     private endGame() {

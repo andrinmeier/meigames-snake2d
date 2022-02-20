@@ -5,7 +5,7 @@ uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
 void main () {
-    vec3 worldPosition = vec3(position, 1.0);
+    vec3 worldPosition = modelMatrix * vec3(position, 1.0);
     gl_Position = projectionMatrix * viewMatrix * vec4(worldPosition, 1.0);
 }
 `;

@@ -1,4 +1,4 @@
-export class SceneColor {
+export class ObjectColor {
     private readonly colorId: any;
     private color: number[];
 

@@ -1,4 +1,4 @@
-export class SmoothCanvas {
+export class HighDPICanvas {
     private currentDevicePixelRatio: number;
     private context: any;
     private readonly resizeObserver: ResizeObserver;

@@ -1,5 +1,5 @@
 import { BoundingBox } from "./BoundingBox";
-import { Point2D } from "./Point2D";
+import { GamePoint2D } from "./GamePoint2D";
 
 export class GameArea {
     private boxes: BoundingBox[];
@@ -17,7 +17,7 @@ export class GameArea {
     }
 
     getFreeSquares(occupied: BoundingBox[]): BoundingBox[] {
-        return this.boxes.filter(box => !occupied.some(occ => box.overlaps(occ)));
+        return this.boxes.filter(box => !occupied.some(occ => box.boxInsideEachOther(occ)));
     }
 
     createSquares(): void {
@@ -25,10 +25,10 @@ export class GameArea {
         for (let row = 25; row <= (this.height - this.squareLength - 25); row += this.squareLength) {
             for (let col = 25; col <= (this.width - this.squareLength - 25); col += this.squareLength) {
                 boxes.push(new BoundingBox(
-                    new Point2D(col, row),
-                    new Point2D(col, row + this.squareLength),
-                    new Point2D(col + this.squareLength, row),
-                    new Point2D(col + this.squareLength, row + this.squareLength)
+                    new GamePoint2D(col, row),
+                    new GamePoint2D(col, row + this.squareLength),
+                    new GamePoint2D(col + this.squareLength, row),
+                    new GamePoint2D(col + this.squareLength, row + this.squareLength)
                 ));
             }
         }

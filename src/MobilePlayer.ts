@@ -1,9 +1,12 @@
 import { Angle } from "./Angle";
-import { Point2D } from "./Point2D";
+import { atan3, normalize } from "./Math";
+import { GamePoint2D } from "./GamePoint2D";
+import { ScreenPoint2D } from "./ScreenPoint2D";
+import { Vector2D } from "./Vector2D";
 
 export class MobilePlayer {
-    private firstPoint: Point2D;
-    private lastPoint: Point2D;
+    private firstPoint: ScreenPoint2D;
+    private lastPoint: ScreenPoint2D;
 
     constructor(private readonly target: any) {
         this.hookupEventListeners();
@@ -29,7 +32,7 @@ export class MobilePlayer {
         }
         const x = event.changedTouches[0].screenX;
         const y = event.changedTouches[0].screenY;
-        this.firstPoint = new Point2D(x, y);
+        this.firstPoint = new GamePoint2D(x, y);
     };
 
     recordMove = (event) => {
@@ -38,7 +41,7 @@ export class MobilePlayer {
         }
         const x = event.changedTouches[0].screenX;
         const y = event.changedTouches[0].screenY;
-        this.lastPoint = new Point2D(x, y);
+        this.lastPoint = new GamePoint2D(x, y);
     };
 
     recordEnd = (event) => {
@@ -55,13 +58,10 @@ export class MobilePlayer {
 
     getSwipeAngle(): Angle {
         const origin = this.firstPoint;
-        const directionVec = new Point2D(this.lastPoint.x - origin.x, origin.y - this.lastPoint.y);
-        const unit = Math.sqrt(Math.pow(directionVec.x, 2) + Math.pow(directionVec.y, 2));
-        const normalized = new Point2D(directionVec.x / unit, directionVec.y / unit);
-        let deg = Math.atan2(normalized.y, normalized.x) * (180 / Math.PI);
-        if (deg < 0) {
-            deg += 360;
-        }
-        return Angle.fromDegrees(deg);
+        const localX = this.lastPoint.x - origin.x;
+        // Screen coordinates start with Y top to bottom
+        const localY = origin.y - this.lastPoint.y;
+        const normalized = normalize(new Vector2D(localX, localY));
+        return atan3(normalized.y, normalized.x);
     }
 }

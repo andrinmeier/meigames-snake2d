@@ -1,25 +1,25 @@
 import { Angle } from "./Angle";
-import { Point2D } from "./Point2D";
+import { GamePoint2D } from "./GamePoint2D";
 import interpolate from './LinearInterpolation';
 
 export class Line {
-    constructor(readonly center: Point2D, readonly phi: Angle, readonly radius: number) {}
+    constructor(readonly center: GamePoint2D, readonly phi: Angle, readonly radius: number) {}
 
-    startPoint(): Point2D {
-        return new Point2D(
+    startPoint(): GamePoint2D {
+        return new GamePoint2D(
             this.center.x + -this.radius * -1 * Math.sin(this.phi.rad),
             this.center.y + -this.radius * Math.cos(this.phi.rad)
         );
     }
 
-    endPoint(): Point2D {
-        return new Point2D(
+    endPoint(): GamePoint2D {
+        return new GamePoint2D(
             this.center.x + this.radius * -1 * Math.sin(this.phi.rad),
             this.center.y + this.radius * Math.cos(this.phi.rad)
         );
     }
 
-    getAllPointsOnLine(): Point2D[] {
+    getAllPointsOnLine(): GamePoint2D[] {
         const points = [];
         points.push(this.startPoint());
         const interpolated = interpolate(this.startPoint(), this.endPoint(), 0.01);
