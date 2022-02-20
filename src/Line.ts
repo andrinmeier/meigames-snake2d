@@ -3,19 +3,19 @@ import { Point2D } from "./Point2D";
 import interpolate from './LinearInterpolation';
 
 export class Line {
-    constructor(readonly point: Point2D, readonly phi: Angle, readonly v: number) {}
+    constructor(readonly center: Point2D, readonly phi: Angle, readonly radius: number) {}
 
     startPoint(): Point2D {
         return new Point2D(
-            this.point.x + -this.v * -1 * Math.sin(this.phi.rad),
-            this.point.y + -this.v * Math.cos(this.phi.rad)
+            this.center.x + -this.radius * -1 * Math.sin(this.phi.rad),
+            this.center.y + -this.radius * Math.cos(this.phi.rad)
         );
     }
 
     endPoint(): Point2D {
         return new Point2D(
-            this.point.x + this.v * -1 * Math.sin(this.phi.rad),
-            this.point.y + this.v * Math.cos(this.phi.rad)
+            this.center.x + this.radius * -1 * Math.sin(this.phi.rad),
+            this.center.y + this.radius * Math.cos(this.phi.rad)
         );
     }
 

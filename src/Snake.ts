@@ -70,22 +70,24 @@ export class Snake implements ISceneObject {
         }
         while (pointsCount > 0) {
             const newPoint = previous.add(this.currentVelocity);
-            this.body.addLine(newPoint, this.currentVelocity.angle);
+            this.body.addSlice(newPoint, this.currentVelocity.angle);
             previous = newPoint;
             pointsCount--;
         }
     }
 
     update(): void {
-        if (!this.stopped) {
-            this.move(1);
+        if (this.stopped) {
+            return;
         }
+        this.move(1);
     }
 
     draw(lagFix: number): void {
         if (!this.stopped) {
             this.move(lagFix);
         }
+        // Always draw body, even if game is over so that the player can still look at the snake.
         this.body.draw(lagFix);
         this.drawHead();
         this.drawTail();
@@ -95,8 +97,8 @@ export class Snake implements ISceneObject {
         const vertices = [];
         const position = new ScenePosition(this.context, this.shaderProgram);
         const color = new SceneColor(this.context, this.shaderProgram);
-        const head = this.body.getFirstLine();
-        const center = head.point;
+        const head = this.body.getTailLine();
+        const center = head.center;
         const angle = head.phi;
         const startDegrees = (angle.degrees + 180) - 90;
         const endDegrees = (angle.degrees + 180) + 90;
@@ -117,8 +119,8 @@ export class Snake implements ISceneObject {
         const vertices = [];
         const position = new ScenePosition(this.context, this.shaderProgram);
         const color = new SceneColor(this.context, this.shaderProgram);
-        const head = this.body.getLastLine();
-        const center = head.point;
+        const head = this.body.getHeadLine();
+        const center = head.center;
         const angle = head.phi;
         const startDegrees = angle.degrees - 90;
         const endDegrees = angle.degrees + 90;

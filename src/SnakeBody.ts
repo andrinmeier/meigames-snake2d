@@ -14,7 +14,7 @@ export class SnakeBody {
     private readonly color: SceneColor;
     private headLength: number = 1;
 
-    constructor(readonly context: any, shaderProgram: any, private readonly bodySize: number) {
+    constructor(readonly context: any, shaderProgram: any, private readonly bodyRadius: number) {
         this.position = new ScenePosition(this.context, shaderProgram);
         this.color = new SceneColor(this.context, shaderProgram);
     }
@@ -30,17 +30,18 @@ export class SnakeBody {
     }
 
     getHead(): Point2D {
-        if (this.lines.length === 0) {
+        const headLine = this.getHeadLine();
+        if (!headLine) {
             return null;
         }
-        return this.lines[this.lines.length - 1].point;
+        return headLine.center;
     }
 
-    getLastLine(): Line {
+    getHeadLine(): Line {
         return this.lines[this.lines.length - 1];
     }
 
-    getFirstLine(): Line {
+    getTailLine(): Line {
         return this.lines[0];
     }
 
@@ -55,8 +56,8 @@ export class SnakeBody {
         return headLines;
     }
 
-    addLine(point: Point2D, angle: Angle) {
-        const line = new Line(point, angle, this.bodySize);
+    addSlice(point: Point2D, angle: Angle) {
+        const line = new Line(point, angle, this.bodyRadius);
         this.vertices.push(line.endPoint().x);
         this.vertices.push(line.endPoint().y);
         this.vertices.push(line.startPoint().x);
@@ -71,10 +72,10 @@ export class SnakeBody {
 
     getHitBox(point: Point2D): BoundingBox {
         return new BoundingBox(
-            new Point2D(point.x - this.bodySize, point.y - this.bodySize),
-            new Point2D(point.x - this.bodySize, point.y + this.bodySize),
-            new Point2D(point.x + this.bodySize, point.y - this.bodySize),
-            new Point2D(point.x + this.bodySize, point.y + this.bodySize)
+            new Point2D(point.x - this.bodyRadius, point.y - this.bodyRadius),
+            new Point2D(point.x - this.bodyRadius, point.y + this.bodyRadius),
+            new Point2D(point.x + this.bodyRadius, point.y - this.bodyRadius),
+            new Point2D(point.x + this.bodyRadius, point.y + this.bodyRadius)
         )
     }
 
@@ -82,7 +83,7 @@ export class SnakeBody {
         const boxes = [];
         for (let i = 0; i < this.lines.length; i++) {
             const line = this.lines[i];
-            boxes.push(this.getHitBox(line.point));
+            boxes.push(this.getHitBox(line.center));
         }
         return boxes;
     }
@@ -99,48 +100,56 @@ export class SnakeBody {
     getIntersectionPoints(line: Line): Point2D[] {
         const all = line.getAllPointsOnLine();
         const size = all.length;
-        const firstQuarter = Math.floor(size * 0.2);
+        const firstQuarter = Math.floor(size * 0.20);
         const lastQuarter = Math.floor(size * 0.80);
         const innerBodyOnly = all.slice(firstQuarter, lastQuarter);
         return innerBodyOnly;
     }
 
-    onSegment(p: Point2D, q: Point2D, r: Point2D) {
-        if (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
-            q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y)) {
+    onSegment(pointA: Point2D, pointB: Point2D, pointC: Point2D) {
+        if (pointB.x <= Math.max(pointA.x, pointC.x) && pointB.x >= Math.min(pointA.x, pointC.x) &&
+            pointB.y <= Math.max(pointA.y, pointC.y) && pointB.y >= Math.min(pointA.y, pointC.y)) {
             return true;
         }
         return false;
     }
 
-    orientation(p: Point2D, q: Point2D, r: Point2D) {
-        let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+    orientation(pointA: Point2D, pointB: Point2D, pointC: Point2D) {
+        let val = (pointB.y - pointA.y) * (pointC.x - pointB.x) - (pointB.x - pointA.x) * (pointC.y - pointB.y);
         if (val == 0) {
             return 0;
         }
         return (val > 0) ? 1 : 2;
     }
 
-    lineSegmentsIntersect(p1: Point2D, q1: Point2D, p2: Point2D, q2: Point2D) {
+    lineSegmentsIntersect(a: Point2D, b: Point2D, c: Point2D, d: Point2D) {
         // Ignore collinearity.
-        if (p1.x - q1.x !== 0 && p2.x - q2.x !== 0) {
-            const slope1 = (p1.y - q1.y) / (p1.x - q1.x);
-            const slope2 = (p2.y - q2.y) / (p2.x - q2.x);
+        if (a.x - b.x !== 0 && c.x - d.x !== 0) {
+            const slope1 = (a.y - b.y) / (a.x - b.x);
+            const slope2 = (c.y - d.y) / (c.x - d.x);
             if (Math.abs((slope1 - slope2)) < 0.001) {
                 return false;
             }
         }
-        let o1 = this.orientation(p1, q1, p2);
-        let o2 = this.orientation(p1, q1, q2);
-        let o3 = this.orientation(p2, q2, p1);
-        let o4 = this.orientation(p2, q2, q1);
+        let o1 = this.orientation(a, b, c);
+        let o2 = this.orientation(a, b, d);
+        let o3 = this.orientation(c, d, a);
+        let o4 = this.orientation(c, d, b);
         if (o1 != o2 && o3 != o4) {
             return true;
         }
-        if (o1 == 0 && this.onSegment(p1, p2, q1)) return true;
-        if (o2 == 0 && this.onSegment(p1, q2, q1)) return true;
-        if (o3 == 0 && this.onSegment(p2, p1, q2)) return true;
-        if (o4 == 0 && this.onSegment(p2, q1, q2)) return true;
+        if (o1 == 0 && this.onSegment(a, c, b)) {
+            return true;
+        }
+        if (o2 == 0 && this.onSegment(a, d, b)) {
+            return true;
+        }
+        if (o3 == 0 && this.onSegment(c, a, d)) {
+            return true;
+        }
+        if (o4 == 0 && this.onSegment(c, b, d)) {
+            return true;
+        }
         return false;
     }
 
@@ -150,9 +159,9 @@ export class SnakeBody {
         if (this.lines.length < (2 * segmentLength + buffer)) {
             return false;
         }
-        const head = [this.lines[this.lines.length - segmentLength].point, this.lines[this.lines.length - 1].point];
+        const head = [this.lines[this.lines.length - segmentLength].center, this.lines[this.lines.length - 1].center];
         for (let i = 0; i < (this.lines.length - segmentLength - buffer); i += segmentLength) {
-            const current = [this.lines[i].point, this.lines[i + segmentLength].point];
+            const current = [this.lines[i].center, this.lines[i + segmentLength].center];
             if (this.lineSegmentsIntersect(current[0], current[1], head[0], head[1])) {
                 return true;
             }

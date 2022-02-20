@@ -4,6 +4,7 @@ export class SmoothCanvas {
     private readonly resizeObserver: ResizeObserver;
     private readonly canvasToDisplaySizeMap: Map<any, number[]>;
     private readonly baseSize: number = 256;
+    private highDPIenabled: boolean = true;
 
     constructor(readonly canvas: any) {
         this.canvasToDisplaySizeMap = new Map([[canvas, [canvas.clientWidth, canvas.clientHeight]]]);
@@ -19,11 +20,16 @@ export class SmoothCanvas {
         this.recalculate();
     }
 
+    disableHighDPI(): void {
+        this.highDPIenabled = false;
+    }
+
     cleanup() {
         this.resizeObserver.disconnect();
     }
 
     onResize(entries: any[]) {
+        this.highDPIenabled = true;
         for (const entry of entries) {
             let width;
             let height;
@@ -57,9 +63,16 @@ export class SmoothCanvas {
         const [widthPixels, heightPixels] = this.canvasToDisplaySizeMap.get(this.canvas);
         const ratio = window.devicePixelRatio;
         const sameRatio = this.currentDevicePixelRatio && ratio === this.currentDevicePixelRatio;
-        const resizedWidth = Math.round(widthPixels * ratio);
+        let resizedWidth;
+        let resizedHeight;
+        if (this.highDPIenabled) {
+            resizedWidth = Math.round(widthPixels * ratio);
+            resizedHeight = Math.round(heightPixels * ratio);
+        } else {
+            resizedWidth = widthPixels;
+            resizedHeight = heightPixels;
+        }
         const sameWidth = this.canvas.width === resizedWidth;
-        const resizedHeight = Math.round(heightPixels * ratio);
         const sameHeight = this.canvas.height === resizedHeight;
         if (sameRatio && sameWidth && sameHeight) {
             return;

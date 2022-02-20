@@ -6,7 +6,7 @@ export class GameLoop {
     private lag: number = 0.0;
     private stopped: boolean = false;
 
-    constructor(readonly context: any, readonly scene: Scene) { }
+    constructor(private readonly context: any, private readonly scene: Scene, private readonly fpsRecorder) { }
 
     init() {
         this.context.clearColor(225 / 255, 225 / 255, 225 / 255, 1);
@@ -28,6 +28,7 @@ export class GameLoop {
             this.context.clear(this.context.COLOR_BUFFER_BIT);
             const restLag = this.lag / this.MS_PER_UPDATE;
             this.scene.draw(restLag);
+            this.fpsRecorder.record(elapsed);
         }
         window.requestAnimationFrame(this.drawAnimated);
     }

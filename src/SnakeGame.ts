@@ -36,9 +36,13 @@ export class SnakeGame implements ISceneObject {
         this.mobilePlayer = new MobilePlayer(canvas);
         this.snake = new Snake(context, shaderProgram, 5, 0.4);
         this.snake.restrictBodyLength(50);
-        this.snake.grow(200);
+        this.snake.grow(50);
         this.food = new Food(5, context, shaderProgram);
         this.respawnFood();
+    }
+
+    switchToLowerQuality(): void {
+        this.smoothCanvas.disableHighDPI();
     }
 
     private respawnFoodRandomly(): boolean {

@@ -19,7 +19,6 @@ export class Angle {
         if (normalized < 0) {
             normalized += 360;
         }
-        console.log({normalized})
         return new Angle(glMatrix.toRadian(normalized));
     }
 }
