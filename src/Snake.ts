@@ -31,8 +31,8 @@ export class Snake implements ISceneObject {
         this.tail = new SnakeTail(bodySize, semiCircle);
     }
 
-    speedUp(): void {
-        this.currentSpeed += 0.05;
+    speedUp(speed: number): void {
+        this.currentSpeed += speed;
         this.currentSpeed = Math.min(this.currentSpeed, 2.0);
     }
 

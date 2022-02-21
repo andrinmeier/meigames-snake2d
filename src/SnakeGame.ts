@@ -124,7 +124,7 @@ export class SnakeGame implements ISceneObject {
             }
             this.snake.increaseBodyLength(this.growBodyByPoints);
             this.respawnFood();
-            this.snake.speedUp();
+            this.snake.speedUp(0.025);
         }
     }
 
