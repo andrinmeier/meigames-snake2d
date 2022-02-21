@@ -23,8 +23,8 @@ export class Circle {
         for (const point of points) {
             const localX = point.x - center.x;
             const localY = point.y - center.y;
-            const radiusSquared = localX * localX + localY * localY;
-            if (radiusSquared <= radius) {
+            const pointRadiusSquared = localX * localX + localY * localY;
+            if (pointRadiusSquared <= (radius * radius)) {
                 return true;
             }
         }

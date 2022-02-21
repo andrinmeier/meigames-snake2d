@@ -43,6 +43,9 @@ export class Snake implements ISceneObject {
 
     approximateDirection(wantedDegrees: number) {
         const rotationDirection = closestRotation(wantedDegrees, this.currentVelocity.angle.degrees);
+        if (rotationDirection === 0) {
+            return;
+        }
         this.changeDirection(rotationDirection * 5.0);
     }
 

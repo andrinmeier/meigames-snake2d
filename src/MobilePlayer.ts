@@ -62,6 +62,9 @@ export class MobilePlayer {
         // Screen coordinates start with Y top to bottom
         const localY = origin.y - this.lastPoint.y;
         const normalized = normalize(new Vector2D(localX, localY));
+        if (normalized === undefined) {
+            return undefined;
+        }
         return atan3(normalized.y, normalized.x);
     }
 }

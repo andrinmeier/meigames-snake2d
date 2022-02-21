@@ -18,6 +18,9 @@ export const median = (values: number[]): number => {
 }
 
 export const atan3 = (y: number, x: number): Angle => {
+    if (x === 0 && y === 0) {
+        return undefined;
+    }
     let deg = Math.atan2(y, x) * (180 / Math.PI);
     if (deg < 0) {
         deg += 360;
@@ -27,12 +30,22 @@ export const atan3 = (y: number, x: number): Angle => {
 
 export const normalize = (vec: Vector2D): Vector2D => {
     const unit = Math.sqrt(Math.pow(vec.x, 2) + Math.pow(vec.y, 2));
+    if (unit === 0) {
+        return undefined;
+    }
     const normalizedX = vec.x / unit;
     const normalizedY = vec.y / unit;
     return new Vector2D(normalizedX, normalizedY);
 }
 
+export const fpEquals = (a: number, b: number, epsilon: number): boolean => {
+    return Math.abs(a - b) < epsilon;
+}
+
 export const closestRotation = (targetDegrees: number, currentDegrees: number): number => {
+    if (fpEquals(targetDegrees, currentDegrees, 0.01)) {
+        return 0;
+    }
     const alpha = targetDegrees - currentDegrees;
     const beta = targetDegrees - currentDegrees + 360;
     const gamma = targetDegrees - currentDegrees - 360;
