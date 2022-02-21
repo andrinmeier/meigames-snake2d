@@ -28,6 +28,7 @@ export class SnakeGame implements ISceneObject {
     private readonly outsideGame: OutsideGameArea;
     private readonly highDPICanvas: HighDPICanvas;
     private readonly gameArea: GameArea;
+    private readonly growBodyByPoints: number = 25;
 
     constructor(context: any, shaderProgram: any, private readonly canvas: any) {
         this.viewMatrix = new ViewMatrix(context, shaderProgram);
@@ -121,7 +122,7 @@ export class SnakeGame implements ISceneObject {
             if (this.onScoreChanged) {
                 this.onScoreChanged(this.score);
             }
-            this.snake.increaseBodyLength(50);
+            this.snake.increaseBodyLength(this.growBodyByPoints);
             this.respawnFood();
             this.snake.speedUp();
         }
